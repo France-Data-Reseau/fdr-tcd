@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Partenaire{% endblock %}
+
+{% block content %}
+<a href="/projet/{{ projet_id }}?collectivite_id={{ collectivite_id }}" class="btn-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Retour au projet
+</a>
+
+<div class="card">
+    <h2>Lier un partenaire existant</h2>
+
+    <form method="POST" action="/projet/{{ projet_id }}/partenaire/nouveau">
+        <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
+
+        {% if partenaires_existants %}
+        <div class="picker-list">
+            {% for p in partenaires_existants %}
+            <li>
+                <input type="radio" id="part_{{ p.id }}" name="partenaire_existant_id" value="{{ p.id }}">
+                <label for="part_{{ p.id }}">{{ p.fields.nom }}{% if p.fields.role_s_ %} — {{ p.fields.role_s_ }}{% endif %}</label>
+            </li>
+            {% endfor %}
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" name="action" value="retour" class="btn btn-primary">Lier et retourner au projet</button>
+            <button type="submit" name="action" value="autre" class="btn btn-accent">Lier et continuer</button>
+        </div>
+        {% else %}
+        <p class="empty">Aucun partenaire existant.</p>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <h2>Créer un nouveau partenaire</h2>
+
+    <form method="POST" action="/projet/{{ projet_id }}/partenaire/nouveau">
+        <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
+
+        <div class="form-group">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" name="nom">
+        </div>
+
+        <div class="form-group">
+            <label for="role_s_">Rôle(s)</label>
+            <input type="text" id="role_s_" name="role_s_" list="list-roles">
+            <datalist id="list-roles">
+                {% for opt in choices.role_s_ %}
+                <option value="{{ opt }}">
+                {% endfor %}
+            </datalist>
+        </div>
+
+        <div class="form-group">
+            <label for="url">URL</label>
+            <input type="url" id="url" name="url">
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" name="action" value="retour" class="btn btn-primary">Créer et retourner au projet</button>
+            <button type="submit" name="action" value="autre" class="btn btn-accent">Créer et continuer</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

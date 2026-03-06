@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Accueil{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Sélectionner une collectivité</h2>
+
+    <div class="search-box">
+        <input type="text" id="search" placeholder="Rechercher une collectivité..." autocomplete="off">
+    </div>
+
+    <ul class="collectivite-list" id="coll-list">
+        {% for coll in collectivites %}
+        <li data-nom="{{ coll.fields.nom|lower }}">
+            <a href="/collectivite/{{ coll.id }}">
+                <span>{{ coll.fields.nom }}</span>
+                <span class="coll-statut">{{ coll.fields.statut }}</span>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="no-results" id="no-results">
+        <p>Aucune collectivité trouvée pour cette recherche.</p>
+        <a href="/collectivite/nouveau" class="btn btn-primary">+ Créer une nouvelle collectivité</a>
+    </div>
+</div>
+
+<div class="btn-group" style="justify-content: center;">
+    <a href="/collectivite/nouveau" class="btn btn-primary">+ Créer une nouvelle collectivité</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var searchInput = document.getElementById('search');
+var items = document.querySelectorAll('#coll-list li');
+var noResults = document.getElementById('no-results');
+
+searchInput.addEventListener('input', function() {
+    var query = this.value.toLowerCase().trim();
+    var visibleCount = 0;
+    items.forEach(function(item) {
+        var nom = item.getAttribute('data-nom');
+        if (!query || nom.indexOf(query) !== -1) {
+            item.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+    if (query && visibleCount === 0) {
+        noResults.classList.add('visible');
+    } else {
+        noResults.classList.remove('visible');
+    }
+});
+
+searchInput.focus();
+</script>
+{% endblock %}

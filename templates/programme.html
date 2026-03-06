@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Programme{% endblock %}
+
+{% block content %}
+<a href="/projet/{{ projet_id }}?collectivite_id={{ collectivite_id }}" class="btn-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Retour au projet
+</a>
+
+<div class="card">
+    <h2>Lier un programme existant</h2>
+
+    <form method="POST" action="/projet/{{ projet_id }}/programme/nouveau">
+        <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
+
+        {% if programmes_existants %}
+        <div class="picker-list">
+            {% for p in programmes_existants %}
+            <li>
+                <input type="radio" id="prog_{{ p.id }}" name="programme_existant_id" value="{{ p.id }}">
+                <label for="prog_{{ p.id }}">{{ p.fields.nom }}{% if p.fields.echelle %} — {{ p.fields.echelle }}{% endif %}</label>
+            </li>
+            {% endfor %}
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" name="action" value="retour" class="btn btn-primary">Lier et retourner au projet</button>
+            <button type="submit" name="action" value="autre" class="btn btn-accent">Lier et continuer</button>
+        </div>
+        {% else %}
+        <p class="empty">Aucun programme existant.</p>
+        {% endif %}
+    </form>
+</div>
+
+<div class="card">
+    <h2>Créer un nouveau programme</h2>
+
+    <form method="POST" action="/projet/{{ projet_id }}/programme/nouveau">
+        <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
+
+        <div class="form-group">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" name="nom">
+        </div>
+
+        <div class="form-group">
+            <label for="info_web">Lien web</label>
+            <input type="url" id="info_web" name="info_web">
+        </div>
+
+        <div class="form-group">
+            <label for="echelle">Échelle</label>
+            <select id="echelle" name="echelle">
+                <option value="">—</option>
+                {% for opt in choices.echelle %}
+                <option value="{{ opt }}">{{ opt }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" name="action" value="retour" class="btn btn-primary">Créer et retourner au projet</button>
+            <button type="submit" name="action" value="autre" class="btn btn-accent">Créer et continuer</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — {% if mode == 'creation' %}Nouvelle collectivité{% else %}{{ record.fields.nom }}{% endif %}{% endblock %}
+
+{% block content %}
+<a href="/" class="btn-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Retour à l'accueil
+</a>
+
+<div class="card">
+    <h2>{% if mode == 'creation' %}Nouvelle collectivité{% else %}Modifier : {{ record.fields.nom }}{% endif %}</h2>
+
+    <form method="POST" action="{% if mode == 'creation' %}/collectivite/nouveau{% else %}/collectivite/{{ record_id }}{% endif %}">
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nom">Nom</label>
+                <input type="text" id="nom" name="nom" value="{{ record.fields.nom if record else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="siren">SIREN</label>
+                <input type="number" id="siren" name="siren" value="{{ record.fields.siren|int if record and record.fields.siren else '' }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="statut">Statut</label>
+                <select id="statut" name="statut">
+                    <option value="">—</option>
+                    {% for opt in choices.statut %}
+                    <option value="{{ opt }}" {% if record and record.fields.statut == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="couverture">Couverture</label>
+                <select id="couverture" name="couverture">
+                    <option value="">—</option>
+                    {% for opt in choices.couverture %}
+                    <option value="{{ opt }}" {% if record and record.fields.couverture == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        {% set current_dep = record.fields.dep ~ ' (' ~ record.fields.num_dep ~ ')' if record and record.fields.dep else '' %}
+        <div class="form-row">
+            <div class="form-group">
+                <label for="dep_select">Département</label>
+                <select id="dep_select" onchange="updateDepFields(this)">
+                    <option value="">—</option>
+                    {% for dep in choices.departements %}
+                    {% set dep_num = dep.split(' - ')[0] %}
+                    {% set dep_nom = dep.split(' - ')[1] if ' - ' in dep else dep %}
+                    <option value="{{ dep_num }}|{{ dep_nom }}" {% if record and record.fields.num_dep == dep_num %}selected{% endif %}>{{ dep }}</option>
+                    {% endfor %}
+                </select>
+                <input type="hidden" id="num_dep" name="num_dep" value="{{ record.fields.num_dep if record else '' }}">
+                <input type="hidden" id="dep" name="dep" value="{{ record.fields.dep if record else '' }}">
+            </div>
+            <div class="form-group">
+                <label for="reg">Région</label>
+                <select id="reg" name="reg">
+                    <option value="">—</option>
+                    {% for opt in choices.regions %}
+                    <option value="{{ opt }}" {% if record and record.fields.reg == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="site_web">Site web</label>
+            <input type="url" id="site_web" name="site_web" value="{{ record.fields.site_web if record else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="adresse">Adresse</label>
+            <input type="text" id="adresse" name="adresse" value="{{ record.fields.adresse if record else '' }}">
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary">
+                {% if mode == 'creation' %}Créer la collectivité{% else %}Enregistrer les modifications{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+{% if mode == 'edition' %}
+<div class="card">
+    <h2>Projets liés</h2>
+
+    {% if projets_lies %}
+    <div class="projet-chips">
+        {% for projet in projets_lies %}
+        <a href="/projet/{{ projet.id }}?collectivite_id={{ record_id }}" class="projet-chip">
+            {{ projet.fields.nom }}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">Aucun projet lié pour l'instant.</p>
+    {% endif %}
+
+    <div class="btn-group">
+        <a href="/projet/nouveau?collectivite_id={{ record_id }}" class="btn btn-primary btn-sm">+ Ajouter un projet</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+var DEP_TO_REGION = {{ dep_to_region_json }};
+
+function updateDepFields(select) {
+    var val = select.value;
+    if (val) {
+        var parts = val.split('|');
+        var numDep = parts[0];
+        document.getElementById('num_dep').value = numDep;
+        document.getElementById('dep').value = parts[1];
+        // Auto-remplir la région
+        var region = DEP_TO_REGION[numDep] || '';
+        if (region) {
+            document.getElementById('reg').value = region;
+        }
+    } else {
+        document.getElementById('num_dep').value = '';
+        document.getElementById('dep').value = '';
+    }
+}
+</script>
+{% endblock %}
