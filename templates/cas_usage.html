@@ -14,6 +14,7 @@
     </p>
 
     <form method="POST" action="/projet/{{ projet_id }}/cas-usage/nouveau">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
 
         <div class="form-group">
@@ -21,7 +22,7 @@
             <select id="theme_filter" onchange="filterByTheme(this.value)">
                 <option value="">— Choisir un thème —</option>
                 {% for theme in themes %}
-                <option value="{{ theme }}">{{ theme }}</option>
+                <option value="{{ theme }}" {% if theme == selected_theme %}selected{% endif %}>{{ theme }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -54,6 +55,7 @@
     </p>
 
     <form method="POST" action="/projet/{{ projet_id }}/cas-usage/nouveau">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
 
         <div class="form-row">
@@ -92,5 +94,8 @@ function filterByTheme(theme) {
         }
     });
 }
+{% if selected_theme %}
+document.addEventListener('DOMContentLoaded', function() { filterByTheme({{ selected_theme | tojson }}); });
+{% endif %}
 </script>
 {% endblock %}

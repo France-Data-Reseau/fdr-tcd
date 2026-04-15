@@ -2,15 +2,16 @@
 {% block title %}FNCCR — {% if mode == 'creation' %}Nouvelle collectivité{% else %}{{ record.fields.nom }}{% endif %}{% endblock %}
 
 {% block content %}
-<a href="/" class="btn-back">
+<a href="{% if user and user.droits == 'Administrateur' %}/completion{% else %}/{% endif %}" class="btn-back">
     <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    Retour à l'accueil
+    {% if user and user.droits == 'Administrateur' %}Retour à la liste{% else %}Retour à l'accueil{% endif %}
 </a>
 
 <div class="card">
     <h2>{% if mode == 'creation' %}Nouvelle collectivité{% else %}Modifier : {{ record.fields.nom }}{% endif %}</h2>
 
     <form method="POST" action="{% if mode == 'creation' %}/collectivite/nouveau{% else %}/collectivite/{{ record_id }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
         <div class="form-row">
             <div class="form-group">
@@ -29,7 +30,7 @@
                 <select id="statut" name="statut">
                     <option value="">—</option>
                     {% for opt in choices.statut %}
-                    <option value="{{ opt }}" {% if record and record.fields.statut == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'statut') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -38,7 +39,7 @@
                 <select id="couverture" name="couverture">
                     <option value="">—</option>
                     {% for opt in choices.couverture %}
-                    <option value="{{ opt }}" {% if record and record.fields.couverture == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'couverture') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -64,7 +65,7 @@
                 <select id="reg" name="reg">
                     <option value="">—</option>
                     {% for opt in choices.regions %}
-                    <option value="{{ opt }}" {% if record and record.fields.reg == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'reg') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>

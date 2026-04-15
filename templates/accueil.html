@@ -14,7 +14,8 @@
         <li data-nom="{{ coll.fields.nom|lower }}">
             <a href="/collectivite/{{ coll.id }}">
                 <span>{{ coll.fields.nom }}</span>
-                <span class="coll-statut">{{ coll.fields.statut }}</span>
+                {% set dep = coll.fields.num_dep %}{% set statut = grist_field(coll, 'statut') %}
+                <span class="coll-meta">{% if dep or statut %}[{{ dep }}{% if dep and statut %} — {% endif %}{{ statut }}]{% endif %}</span>
             </a>
         </li>
         {% endfor %}

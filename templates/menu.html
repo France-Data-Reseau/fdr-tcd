@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Accueil{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="card menu-card">
+        <h2 style="border:none;padding:0;text-align:center;">Bienvenue, {{ user.prenom }}</h2>
+        <p class="login-subtitle" style="text-align:center;">Sélectionnez l'interface souhaitée.</p>
+
+        <div class="menu-buttons-row">
+            {% if user.droits == "Administrateur" or (user.droits == "Editeur" and user.collectivite_id) %}
+            <a href="/completion" class="menu-btn">
+                <div class="menu-btn-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </div>
+                <strong>Contribution</strong>
+                <span>Saisir et modifier les données</span>
+            </a>
+            {% elif user.droits == "Editeur" %}
+            <div class="menu-btn menu-btn-disabled" title="Aucune collectivité associée à votre compte">
+                <div class="menu-btn-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <strong>Contribution</strong>
+                <span class="menu-btn-tooltip">Aucune collectivité n'est associée à votre compte — contactez un administrateur</span>
+            </div>
+            {% else %}
+            <div class="menu-btn menu-btn-disabled" title="Vous ne disposez pas des droits de modification">
+                <div class="menu-btn-icon">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <strong>Contribution</strong>
+                <span class="menu-btn-tooltip">Vous ne disposez pas des droits de modification</span>
+            </div>
+            {% endif %}
+
+            <a href="/restitution" class="menu-btn menu-btn-accent">
+                <div class="menu-btn-icon menu-btn-icon-accent">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <strong>Cartographie</strong>
+                <span>Cartes et statistiques</span>
+            </a>
+        </div>
+
+        <div style="text-align:center;margin-top:1.25rem;">
+            {% if user.droits == "Visiteur" %}
+            <form action="/demande-modification" method="post" style="display:inline;margin-right:0.5rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-accent btn-sm">Demande de modification</button>
+            </form>
+            {% elif user.droits == "Extention" %}
+            <span class="badge badge-pending">Demande de modification en cours</span>
+            {% endif %}
+            <a href="/logout" class="btn btn-secondary btn-sm">Se déconnecter</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

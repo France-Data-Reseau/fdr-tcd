@@ -10,7 +10,7 @@
 {% if mode == 'creation' %}
 <div class="info-banner">
     <span class="info-banner-icon">i</span>
-    <span>Renseignez les informations principales du projet. Les données complémentaires (cas d'usage, partenaires, programmes, documents, contacts) pourront être ajoutées une fois le projet créé.</span>
+    <span>Renseignez les informations principales du projet. Les données complémentaires (cas d'usage, partenaires, programmes, documents) pourront être ajoutées une fois le projet créé.</span>
 </div>
 {% endif %}
 
@@ -25,6 +25,7 @@
     {% endif %}
 
     <form method="POST" action="{% if mode == 'creation' %}/projet/nouveau{% else %}/projet/{{ record_id }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
 
         <div class="form-group">
@@ -43,7 +44,7 @@
                 <select id="avancement" name="avancement">
                     <option value="">—</option>
                     {% for opt in choices.avancement %}
-                    <option value="{{ opt }}" {% if record and record.fields.avancement == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'avancement') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -52,7 +53,7 @@
                 <select id="echelle" name="echelle">
                     <option value="">—</option>
                     {% for opt in choices.echelle %}
-                    <option value="{{ opt }}" {% if record and record.fields.echelle == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'echelle') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -64,7 +65,7 @@
                 <select id="connectivite_s_" name="connectivite_s_">
                     <option value="">—</option>
                     {% for opt in choices.connectivites %}
-                    <option value="{{ opt }}" {% if record and record.fields.connectivite_s_ == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'connectivite_s_') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -73,7 +74,7 @@
                 <select id="domaine_s_" name="domaine_s_">
                     <option value="">—</option>
                     {% for opt in choices.domaine_s_ %}
-                    <option value="{{ opt }}" {% if record and record.fields.domaine_s_ == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'domaine_s_') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -84,7 +85,7 @@
                 <label for="mutualisation">Mutualisation</label>
                 <input type="text" id="mutualisation" name="mutualisation"
                     list="list-mutualisation"
-                    value="{{ record.fields.mutualisation if record else '' }}">
+                    value="{{ grist_field(record, 'mutualisation') if record else '' }}">
                 <datalist id="list-mutualisation">
                     {% for opt in choices.mutualisation %}
                     <option value="{{ opt }}">
@@ -95,7 +96,7 @@
                 <label for="soutien">Soutien</label>
                 <input type="text" id="soutien" name="soutien"
                     list="list-soutien"
-                    value="{{ record.fields.soutien if record else '' }}">
+                    value="{{ grist_field(record, 'soutien') if record else '' }}">
                 <datalist id="list-soutien">
                     {% for opt in choices.soutien %}
                     <option value="{{ opt }}">
@@ -108,7 +109,7 @@
             <label for="contrat">Contrat</label>
             <input type="text" id="contrat" name="contrat"
                 list="list-contrat"
-                value="{{ record.fields.contrat if record else '' }}">
+                value="{{ grist_field(record, 'contrat') if record else '' }}">
             <datalist id="list-contrat">
                 {% for opt in choices.contrat %}
                 <option value="{{ opt }}">
@@ -118,7 +119,7 @@
 
         <div class="form-check">
             <input type="checkbox" id="dev_interne" name="dev_interne" value="1"
-                {% if record and record.fields.dev_interne == 'checked' %}checked{% endif %}>
+                {% if record and record.fields.dev_interne %}checked{% endif %}>
             <label for="dev_interne">Développement interne</label>
         </div>
 
@@ -138,7 +139,7 @@
                 <select id="departement_s_" name="departement_s_" onchange="autoFillRegion(this)">
                     <option value="">—</option>
                     {% for dep in choices.departements %}
-                    <option value="{{ dep }}" {% if record and record.fields.departement_s_ == dep %}selected{% endif %}>{{ dep }}</option>
+                    <option value="{{ dep }}" {% if record and grist_field(record, 'departement_s_') == dep %}selected{% endif %}>{{ dep }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -147,7 +148,7 @@
                 <select id="region" name="region">
                     <option value="">—</option>
                     {% for opt in choices.region %}
-                    <option value="{{ opt }}" {% if record and record.fields.region == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'region') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -237,6 +238,20 @@
     </ul>
 </div>
 {% endif %}
+
+{% if sous_formulaires.contacts %}
+<div class="card">
+    <h3>Contacts</h3>
+    <ul class="record-list">
+        {% for r in sous_formulaires.contacts %}
+        <li>
+            <span>{{ r.fields.prenom }} {{ r.fields.nom }}{% if r.fields.elu_e %} — Élu·e{% endif %}</span>
+            <span class="record-meta">{{ r.fields.fonction }}{% if r.fields.email %} · {{ r.fields.email }}{% endif %}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
 {% endif %}
 {% endblock %}
 
@@ -247,12 +262,11 @@ var DEP_TO_REGION = {{ dep_to_region_json }};
 function autoFillRegion(select) {
     var val = select.value;
     if (val) {
-        // Extraire le numéro de département (avant " - ")
         var numDep = val.split(' - ')[0].trim();
         var region = DEP_TO_REGION[numDep] || '';
-        if (region) {
-            document.getElementById('region').value = region;
-        }
+        document.getElementById('region').value = region;
+    } else {
+        document.getElementById('region').value = '';
     }
 }
 </script>

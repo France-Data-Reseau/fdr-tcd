@@ -11,6 +11,7 @@
     <h2>Nouveau document</h2>
 
     <form method="POST" action="/projet/{{ projet_id }}/document/nouveau">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
 
         <div class="form-group">

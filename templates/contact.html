@@ -18,6 +18,7 @@
     {% endif %}
 
     <form method="POST" action="/projet/{{ projet_id }}/contact/nouveau">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
 
         <div class="form-row">

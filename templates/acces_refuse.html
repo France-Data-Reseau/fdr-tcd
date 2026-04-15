@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Accès restreint{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="card" style="text-align: center;">
+        {% if droits == "En attente" %}
+        <h2>Demande en attente</h2>
+        <p class="login-subtitle">Votre demande d'accès est en cours de validation par un administrateur.</p>
+        <p style="font-size: 0.87rem; color: var(--gray-500); margin-top: 0.75rem;">
+            Vous recevrez un accès dès qu'un administrateur aura validé votre compte.
+        </p>
+        {% else %}
+        <h2>Accès refusé</h2>
+        <p class="login-subtitle">Vous n'avez pas les droits nécessaires pour accéder à cette application.</p>
+        {% endif %}
+
+        <div class="btn-group" style="justify-content: center; margin-top: 1.5rem;">
+            <a href="/logout" class="btn btn-secondary">Se déconnecter</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,7 +4,9 @@ Gère la connexion, le cache des tables/colonnes, et les opérations CRUD.
 """
 
 import os
+import asyncio
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -17,7 +19,7 @@ logger = logging.getLogger("grist_client")
 # --- Configuration ---
 GRIST_API_KEY = os.getenv("GRIST_API_KEY", "")
 GRIST_BASE_URL = "https://grist.francedatareseau.fr"
-GRIST_DOC_ID = "4usnoxBdw9ggHsxmhBtThG"
+GRIST_DOC_ID = os.getenv("GRIST_DOC_ID", "")
 API_BASE = f"{GRIST_BASE_URL}/api/docs/{GRIST_DOC_ID}"
 
 HEADERS = {
@@ -83,38 +85,51 @@ async def _patch(path: str, data: dict) -> dict:
 
 async def init_tables():
     """Récupère la liste des tables Grist et établit le mapping."""
-    data = await _get("/tables")
-    tables = data.get("tables", [])
-
+    # Mapping clé interne → nom réel de la table dans Grist
     mapping = {
-        "collectivites": None,
-        "projets": None,
-        "contacts": None,
-        "cas_d_usage": None,
-        "partenaires": None,
-        "programmes": None,
-        "documents": None,
+        "collectivites": "BDD_Collectivites",
+        "projets": "BDD_Projets",
+        "contacts": "BDD_Contacts",
+        "cas_d_usage": "BDD_CasUsages",
+        "partenaires": "BDD_Partenaires",
+        "programmes": "BDD_Programmes",
+        "documents": "BDD_Documents",
+        "utilisateurs": "BDD_Utilisateurs",
+        "connectivites": "BDD_Connectivites",
     }
 
-    for t in tables:
-        tid = t["id"].lower()
-        if tid.startswith("collectivites"):
-            mapping["collectivites"] = t["id"]
-        elif tid.startswith("projets"):
-            mapping["projets"] = t["id"]
-        elif tid.startswith("contacts"):
-            mapping["contacts"] = t["id"]
-        elif tid.startswith("cas_d_usage"):
-            mapping["cas_d_usage"] = t["id"]
-        elif tid.startswith("partenaires"):
-            mapping["partenaires"] = t["id"]
-        elif tid.startswith("programmes"):
-            mapping["programmes"] = t["id"]
-        elif tid.startswith("documents"):
-            mapping["documents"] = t["id"]
-
+    # Le mapping est appliqué immédiatement, la vérification est optionnelle
     TABLE_IDS.update(mapping)
-    logger.info("Tables découvertes : %s", TABLE_IDS)
+
+    # Vérification : on récupère les tables existantes pour valider
+    try:
+        data = await _get("/tables")
+        existing = {t["id"] for t in data.get("tables", [])}
+        for key, table_id in mapping.items():
+            if table_id not in existing:
+                logger.warning("Table '%s' (clé '%s') introuvable dans Grist", table_id, key)
+    except Exception as e:
+        logger.warning("Impossible de valider les tables Grist : %s", e)
+
+    logger.info("Tables configurées : %s", TABLE_IDS)
+
+
+def _extract_values(v) -> list[str]:
+    """Extrait les valeurs d'un champ Grist (string, ChoiceList ['L', ...], ou None)."""
+    if not v:
+        return []
+    if isinstance(v, list) and len(v) > 1 and v[0] == "L":
+        return [str(item).strip() for item in v[1:] if item and str(item).strip()]
+    if isinstance(v, str) and v.strip():
+        return [v.strip()]
+    return []
+
+
+def get_field_value(record: dict, field: str) -> str:
+    """Retourne la première valeur d'un champ (string ou ChoiceList) pour comparaison template."""
+    v = record.get("fields", {}).get(field)
+    values = _extract_values(v)
+    return values[0] if values else ""
 
 
 async def init_choices():
@@ -127,30 +142,15 @@ async def init_choices():
     for field in ["statut", "couverture"]:
         values = set()
         for rec in coll_records:
-            v = rec["fields"].get(field, "")
-            if v and isinstance(v, str) and v.strip():
-                values.add(v.strip())
+            values.update(_extract_values(rec["fields"].get(field)))
         CHOICES_CACHE[f"collectivites.{field}"] = sorted(values)
 
     # --- Projets ---
     proj_records = await get_all_records("projets")
-    for field in ["avancement", "echelle", "region"]:
+    for field in ["avancement", "echelle", "region", "mutualisation", "soutien", "contrat"]:
         values = set()
         for rec in proj_records:
-            v = rec["fields"].get(field, "")
-            if v and isinstance(v, str) and v.strip():
-                values.add(v.strip())
-        CHOICES_CACHE[f"projets.{field}"] = sorted(values)
-
-    for field in ["mutualisation", "soutien", "contrat"]:
-        values = set()
-        for rec in proj_records:
-            v = rec["fields"].get(field, "")
-            if v and isinstance(v, str) and v.strip():
-                for part in v.split(","):
-                    part = part.strip().strip('"')
-                    if part:
-                        values.add(part)
+            values.update(_extract_values(rec["fields"].get(field)))
         CHOICES_CACHE[f"projets.{field}"] = sorted(values)
 
     # --- Cas d'usage : thèmes et mapping thème → cas d'usage ---
@@ -158,15 +158,14 @@ async def init_choices():
     themes = set()
     CAS_USAGE_BY_THEME.clear()
     for rec in cas_records:
-        theme = rec["fields"].get("theme", "")
+        theme_vals = _extract_values(rec["fields"].get("theme"))
         nom = rec["fields"].get("nom", "")
-        if theme and isinstance(theme, str) and theme.strip():
-            theme = theme.strip()
+        for theme in theme_vals:
             themes.add(theme)
             if nom:
                 CAS_USAGE_BY_THEME.setdefault(theme, []).append({
                     "id": rec["id"],
-                    "nom": nom.strip(),
+                    "nom": nom.strip() if isinstance(nom, str) else str(nom),
                 })
     CHOICES_CACHE["cas_d_usage.theme"] = sorted(themes)
 
@@ -177,21 +176,14 @@ async def init_choices():
     part_records = await get_all_records("partenaires")
     roles = set()
     for rec in part_records:
-        v = rec["fields"].get("role_s_", "")
-        if v and isinstance(v, str) and v.strip():
-            for part_val in v.split(","):
-                part_val = part_val.strip().strip('"')
-                if part_val:
-                    roles.add(part_val)
+        roles.update(_extract_values(rec["fields"].get("role_s_")))
     CHOICES_CACHE["partenaires.role_s_"] = sorted(roles)
 
     # --- Programmes : échelle ---
     prog_records = await get_all_records("programmes")
     echelles = set()
     for rec in prog_records:
-        v = rec["fields"].get("echelle", "")
-        if v and isinstance(v, str) and v.strip():
-            echelles.add(v.strip())
+        echelles.update(_extract_values(rec["fields"].get("echelle")))
     CHOICES_CACHE["programmes.echelle"] = sorted(echelles)
 
     logger.info("Choix mis en cache : %s", {k: len(v) for k, v in CHOICES_CACHE.items()})
@@ -298,3 +290,276 @@ def get_record_name(table_key: str, record_id: int) -> str:
         if rec["id"] == record_id:
             return rec["fields"].get("nom", f"#{record_id}")
     return f"#{record_id}"
+
+
+# ============================================================
+# Utilisateurs
+# ============================================================
+
+async def get_user_by_email(email: str) -> dict | None:
+    """Recherche un utilisateur par email (insensible à la casse)."""
+    records = await get_all_records("utilisateurs")
+    email_lower = email.strip().lower()
+    for rec in records:
+        if rec["fields"].get("Email", "").strip().lower() == email_lower:
+            return rec
+    return None
+
+
+async def create_user(fields: dict) -> dict:
+    """Crée un nouvel utilisateur avec le statut En attente."""
+    fields.setdefault("Droits", "En attente")
+    return await create_record("utilisateurs", fields)
+
+
+# ============================================================
+# Géocodage via api-adresse.data.gouv.fr
+# ============================================================
+
+GEOCODE_CACHE: dict[str, tuple[float, float] | None] = {}
+
+
+async def geocode_address(query: str) -> tuple[float, float] | None:
+    """Géocode une adresse via l'API adresse du gouvernement. Retourne (lat, lng)."""
+    if not query or not query.strip():
+        return None
+    query = query.strip()
+    if query in GEOCODE_CACHE:
+        return GEOCODE_CACHE[query]
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://api-adresse.data.gouv.fr/search/",
+                params={"q": query, "limit": 1},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            features = data.get("features", [])
+            if features:
+                coords = features[0]["geometry"]["coordinates"]
+                result = (coords[1], coords[0])  # (lat, lng)
+                GEOCODE_CACHE[query] = result
+                return result
+    except Exception as e:
+        logger.warning("Géocodage échoué pour '%s': %s", query, e)
+    GEOCODE_CACHE[query] = None
+    return None
+
+
+async def _geocode_batch(queries: list[tuple[int, str]]) -> dict[int, tuple[float, float] | None]:
+    """Géocode plusieurs adresses en parallèle (max 5 simultanées)."""
+    sem = asyncio.Semaphore(5)
+    results: dict[int, tuple[float, float] | None] = {}
+
+    async def _geo(cid: int, query: str):
+        async with sem:
+            results[cid] = await geocode_address(query)
+
+    tasks = [_geo(cid, q) for cid, q in queries if q and q.strip()]
+    if tasks:
+        await asyncio.gather(*tasks)
+    return results
+
+
+# ============================================================
+# Données de restitution
+# ============================================================
+
+_RESTITUTION_CACHE: dict | None = None
+_RESTITUTION_CACHE_TIME: float = 0
+
+
+async def get_restitution_data(force_refresh: bool = False) -> dict:
+    """Retourne toutes les données structurées pour la page de restitution."""
+    global _RESTITUTION_CACHE, _RESTITUTION_CACHE_TIME
+    now = time.time()
+    if _RESTITUTION_CACHE and not force_refresh and (now - _RESTITUTION_CACHE_TIME) < 300:
+        return _RESTITUTION_CACHE
+
+    # Récupérer toutes les tables
+    collectivites = await get_all_records("collectivites")
+    projets = await get_all_records("projets")
+    cas_usages = await get_all_records("cas_d_usage")
+    partenaires = await get_all_records("partenaires")
+    programmes = await get_all_records("programmes")
+    documents = await get_all_records("documents")
+
+    projets_by_id = {p["id"]: p for p in projets}
+
+    # Index cas d'usage par projet
+    cas_by_projet: dict[int, list] = {}
+    for cu in cas_usages:
+        pid = cu["fields"].get("projets")
+        if pid and isinstance(pid, int):
+            cas_by_projet.setdefault(pid, []).append({
+                "nom": cu["fields"].get("nom", ""),
+                "theme": _extract_values(cu["fields"].get("theme"))[0]
+                if _extract_values(cu["fields"].get("theme")) else "",
+            })
+
+    # Index partenaires par projet
+    part_by_projet: dict[int, list] = {}
+    for pa in partenaires:
+        projets_ref = pa["fields"].get("Projets")
+        if projets_ref and isinstance(projets_ref, list) and len(projets_ref) > 1:
+            for pid in projets_ref[1:]:
+                part_by_projet.setdefault(pid, []).append({
+                    "nom": pa["fields"].get("nom", ""),
+                    "role": pa["fields"].get("role_s_", ""),
+                })
+
+    # Index programmes par projet
+    prog_by_projet: dict[int, list] = {}
+    for pr in programmes:
+        projets_ref = pr["fields"].get("projet_s_")
+        if projets_ref and isinstance(projets_ref, list) and len(projets_ref) > 1:
+            for pid in projets_ref[1:]:
+                prog_by_projet.setdefault(pid, []).append({
+                    "nom": pr["fields"].get("nom", ""),
+                })
+
+    # Index documents par projet
+    doc_by_projet: dict[int, list] = {}
+    for d in documents:
+        pid = d["fields"].get("projet")
+        if pid and isinstance(pid, int):
+            doc_by_projet.setdefault(pid, []).append({
+                "titre": d["fields"].get("titre", ""),
+                "type": d["fields"].get("type", ""),
+            })
+
+    # Mapping collectivité → IDs projets
+    coll_projet_ids: dict[int, set] = {}
+    for c in collectivites:
+        cid = c["id"]
+        coll_projet_ids[cid] = set()
+        for ref_field in ["projet_s_", "Projets_Liste_des_projets_3_"]:
+            ref_val = c["fields"].get(ref_field)
+            if ref_val and isinstance(ref_val, list) and len(ref_val) > 1:
+                coll_projet_ids[cid].update(ref_val[1:])
+    for p in projets:
+        coll_ref = p["fields"].get("collectivite_s_porteuse_s_")
+        if coll_ref and isinstance(coll_ref, list) and len(coll_ref) > 1:
+            for cid in coll_ref[1:]:
+                coll_projet_ids.setdefault(cid, set()).add(p["id"])
+
+    # Géocodage parallèle
+    geo_queries = []
+    for c in collectivites:
+        f = c["fields"]
+        address = (f.get("adresse") or "").strip()
+        nom = (f.get("nom") or "").strip()
+        dep = (f.get("dep") or "").strip()
+        num_dep = (f.get("num_dep") or "").strip()
+        reg = (f.get("reg") or "").strip()
+        if address:
+            query = address
+        elif nom and dep:
+            query = nom + ", " + dep
+        elif nom and num_dep:
+            query = nom + ", département " + num_dep
+        elif nom and reg:
+            query = nom + ", " + reg
+        elif nom:
+            query = nom + ", France"
+        elif dep:
+            query = dep
+        else:
+            query = ""
+        geo_queries.append((c["id"], query))
+    geo_results = await _geocode_batch(geo_queries)
+
+    # Construire le résultat
+    result_collectivites = []
+    for c in collectivites:
+        f = c["fields"]
+        pid_set = coll_projet_ids.get(c["id"], set())
+        c_projets = []
+        for pid in pid_set:
+            if pid in projets_by_id:
+                pf = projets_by_id[pid]["fields"]
+                c_projets.append({
+                    "id": pid,
+                    "nom": pf.get("nom", ""),
+                    "domaine": _extract_values(pf.get("domaine_s_")),
+                    "avancement": pf.get("avancement", ""),
+                    "connectivite": _extract_values(pf.get("connectivite_s_")),
+                    "echelle": pf.get("echelle", ""),
+                    "description": pf.get("description", ""),
+                    "cas_usages": cas_by_projet.get(pid, []),
+                    "partenaires": part_by_projet.get(pid, []),
+                    "programmes": prog_by_projet.get(pid, []),
+                    "documents": doc_by_projet.get(pid, []),
+                })
+
+        coords = geo_results.get(c["id"])
+        result_collectivites.append({
+            "id": c["id"],
+            "nom": f.get("nom", ""),
+            "siren": f.get("siren", ""),
+            "statut": get_field_value(c, "statut"),
+            "couverture": get_field_value(c, "couverture"),
+            "dep": f.get("dep", ""),
+            "num_dep": f.get("num_dep", ""),
+            "reg": f.get("reg", ""),
+            "site_web": f.get("site_web", ""),
+            "adresse": f.get("adresse", ""),
+            "url_logo": f.get("url_logo", ""),
+            "lat": coords[0] if coords else None,
+            "lng": coords[1] if coords else None,
+            "nb_projets": len(c_projets),
+            "projets": c_projets,
+        })
+
+    # Stats globales (dédupliquées)
+    seen_ids: set[int] = set()
+    unique_projets = []
+    for c in result_collectivites:
+        for p in c["projets"]:
+            if p["id"] not in seen_ids:
+                seen_ids.add(p["id"])
+                unique_projets.append(p)
+
+    par_connectivite: dict[str, int] = {}
+    par_avancement: dict[str, int] = {}
+    par_domaine: dict[str, int] = {}
+    all_cas_usages: set[str] = set()
+
+    for p in unique_projets:
+        for conn in p["connectivite"]:
+            par_connectivite[conn] = par_connectivite.get(conn, 0) + 1
+        av = p["avancement"]
+        if av:
+            par_avancement[av] = par_avancement.get(av, 0) + 1
+        for dom in p["domaine"]:
+            par_domaine[dom] = par_domaine.get(dom, 0) + 1
+        for cu in p["cas_usages"]:
+            nom = cu.get("nom", "") if isinstance(cu, dict) else str(cu)
+            if nom:
+                all_cas_usages.add(nom)
+
+    filtres = {
+        "couvertures": sorted(set(c["couverture"] for c in result_collectivites if c["couverture"])),
+        "statuts": sorted(set(c["statut"] for c in result_collectivites if c["statut"])),
+        "domaines": sorted(par_domaine.keys()),
+        "connectivites": sorted(par_connectivite.keys()),
+        "avancements": sorted(par_avancement.keys()),
+        "cas_usages": sorted(all_cas_usages),
+    }
+
+    result = {
+        "collectivites": result_collectivites,
+        "stats": {
+            "nb_collectivites": len(result_collectivites),
+            "nb_projets": len(unique_projets),
+            "par_connectivite": par_connectivite,
+            "par_avancement": par_avancement,
+            "par_domaine": par_domaine,
+            "nb_cas_usages": len(all_cas_usages),
+        },
+        "filtres": filtres,
+    }
+
+    _RESTITUTION_CACHE = result
+    _RESTITUTION_CACHE_TIME = now
+    return result
