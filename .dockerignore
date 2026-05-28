@@ -1,0 +1,12 @@
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.example
+.claude/
+screen.png
+screen_errors/
+*.md
