@@ -585,7 +585,8 @@
         markersLayer.clearLayers();
         var bounds = [];
         filtered.forEach(function(c) {
-            if (c.lat && c.lng) {
+            // N'afficher que les collectivités reliées à au moins un projet
+            if (c.lat && c.lng && c.nb_projets > 0) {
                 var color = statutColors[c.statut] || '#43bfb5';
                 var tooltipContent = '<strong>' + esc(c.nom) + '</strong><br>' +
                     (c.statut ? esc(c.statut) + '<br>' : '') +
