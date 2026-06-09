@@ -319,45 +319,82 @@ async def create_user(fields: dict) -> dict:
 GEOCODE_CACHE: dict[str, tuple[float, float] | None] = {}
 
 
-async def geocode_address(query: str) -> tuple[float, float] | None:
-    """Géocode une adresse via l'API adresse du gouvernement. Retourne (lat, lng)."""
+def _feature_dep(props: dict) -> str:
+    """Code département d'un résultat api-adresse (via context ou citycode)."""
+    ctx = props.get("context") or ""
+    if ctx:
+        first = ctx.split(",")[0].strip()
+        if first:
+            return first
+    citycode = props.get("citycode") or ""
+    if citycode[:2] in ("2A", "2B"):
+        return citycode[:2]
+    return citycode[:3] if citycode[:2] == "97" else citycode[:2]
+
+
+async def geocode_address(
+    query: str,
+    expected_dep: str | None = None,
+    municipality: bool = False,
+) -> tuple[float, float] | None:
+    """
+    Géocode une requête via l'API adresse du gouvernement. Retourne (lat, lng).
+
+    - `municipality=True` restreint aux communes (type=municipality).
+    - `expected_dep` : si fourni, on ne retient qu'un résultat situé dans ce
+      département. Sinon, aucun résultat n'est renvoyé (le repli centroïde est
+      géré par l'appelant) — cela évite de placer un point dans la mauvaise région.
+    """
     if not query or not query.strip():
         return None
     query = query.strip()
-    if query in GEOCODE_CACHE:
-        return GEOCODE_CACHE[query]
+    cache_key = f"{query}|{expected_dep or ''}|{int(municipality)}"
+    if cache_key in GEOCODE_CACHE:
+        return GEOCODE_CACHE[cache_key]
+    result = None
     try:
+        params = {"q": query, "limit": 8}
+        if municipality:
+            params["type"] = "municipality"
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
-                "https://api-adresse.data.gouv.fr/search/",
-                params={"q": query, "limit": 1},
+                "https://api-adresse.data.gouv.fr/search/", params=params
             )
             resp.raise_for_status()
-            data = resp.json()
-            features = data.get("features", [])
-            if features:
+            features = resp.json().get("features", [])
+        if features:
+            if expected_dep:
+                for feat in features:
+                    if _feature_dep(feat.get("properties", {})) == expected_dep:
+                        coords = feat["geometry"]["coordinates"]
+                        result = (coords[1], coords[0])
+                        break
+            else:
                 coords = features[0]["geometry"]["coordinates"]
-                result = (coords[1], coords[0])  # (lat, lng)
-                GEOCODE_CACHE[query] = result
-                return result
+                result = (coords[1], coords[0])
     except Exception as e:
         logger.warning("Géocodage échoué pour '%s': %s", query, e)
-    GEOCODE_CACHE[query] = None
-    return None
+        return None  # ne pas mettre en cache un échec transitoire (rate-limit…)
+    GEOCODE_CACHE[cache_key] = result
+    return result
 
 
-async def _geocode_batch(queries: list[tuple[int, str]]) -> dict[int, tuple[float, float] | None]:
-    """Géocode plusieurs adresses en parallèle (max 5 simultanées)."""
+async def _resolve_coords_batch(
+    collectivites: list[dict],
+) -> dict[int, tuple[float, float] | None]:
+    """Résout les coordonnées de toutes les collectivités en parallèle (max 5)."""
+    import geo_resolver
+
     sem = asyncio.Semaphore(5)
     results: dict[int, tuple[float, float] | None] = {}
 
-    async def _geo(cid: int, query: str):
+    async def _geo(rec: dict):
         async with sem:
-            results[cid] = await geocode_address(query)
+            results[rec["id"]] = await geo_resolver.resolve(
+                rec["fields"], geocode_address
+            )
 
-    tasks = [_geo(cid, q) for cid, q in queries if q and q.strip()]
-    if tasks:
-        await asyncio.gather(*tasks)
+    await asyncio.gather(*[_geo(rec) for rec in collectivites])
     return results
 
 
@@ -443,31 +480,8 @@ async def get_restitution_data(force_refresh: bool = False) -> dict:
             for cid in coll_ref[1:]:
                 coll_projet_ids.setdefault(cid, set()).add(p["id"])
 
-    # Géocodage parallèle
-    geo_queries = []
-    for c in collectivites:
-        f = c["fields"]
-        address = (f.get("adresse") or "").strip()
-        nom = (f.get("nom") or "").strip()
-        dep = (f.get("dep") or "").strip()
-        num_dep = (f.get("num_dep") or "").strip()
-        reg = (f.get("reg") or "").strip()
-        if address:
-            query = address
-        elif nom and dep:
-            query = nom + ", " + dep
-        elif nom and num_dep:
-            query = nom + ", département " + num_dep
-        elif nom and reg:
-            query = nom + ", " + reg
-        elif nom:
-            query = nom + ", France"
-        elif dep:
-            query = dep
-        else:
-            query = ""
-        geo_queries.append((c["id"], query))
-    geo_results = await _geocode_batch(geo_queries)
+    # Résolution géographique parallèle (nettoyage du nom + validation départementale)
+    geo_results = await _resolve_coords_batch(collectivites)
 
     # Construire le résultat
     result_collectivites = []
