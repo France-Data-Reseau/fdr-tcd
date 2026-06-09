@@ -20,6 +20,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 import grist_client as grist
+import email_utils
 from data_lists import DEPARTEMENTS, REGIONS, CONNECTIVITES, DEP_NUM_TO_REGION
 
 load_dotenv()
@@ -288,6 +289,18 @@ async def inscription_submit(request: Request):
 
     try:
         await grist.create_user(fields)
+        # Notifier les administrateurs (sans bloquer si l'email échoue / SMTP absent)
+        collectivite_nom = (
+            grist.get_record_name("collectivites", collectivite_id)
+            if collectivite_id else ""
+        )
+        await email_utils.notify_new_user(
+            prenom=fields["Prenom"],
+            nom=fields["Nom"],
+            email=email,
+            organisation=fields.get("Organisation", ""),
+            collectivite=collectivite_nom,
+        )
         flash(request, "Votre demande d'accès a été envoyée. Un administrateur la validera prochainement.")
         request.session["user"] = {
             "id": 0,
