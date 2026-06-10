@@ -25,6 +25,11 @@ Les seules dépendances externes :
 1. **L'instance Grist** (`grist.francedatareseau.fr`) — données + comptes utilisateurs.
 2. **Un accès réseau sortant HTTPS** depuis le serveur vers ce Grist (port 443).
 
+> 🔒 **Cette livraison ne contient AUCUN secret.** Le fichier `.env` (clé d'API
+> Grist, clé de session…) n'est pas fourni : tu le crées à partir de
+> `.env.example` (section 7). Les valeurs `GRIST_API_KEY` et `GRIST_DOC_ID` te
+> seront communiquées séparément par la FNCCR / Victor Welschinger.
+
 ---
 
 ## 2. Contenu de ce dossier (`Migration_1/`)

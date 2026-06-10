@@ -5,3 +5,6 @@ __pycache__/
 *.png
 venv/
 .venv/
+# Fichiers internes — NE PAS transmettre au client
+_INTERNE/
+*.csv

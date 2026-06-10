@@ -177,6 +177,10 @@ Le fichier `data_lists.py` contient les listes de departements, regions et conne
 
 ### 7. Deploiement
 
+> 📦 **Migration / deploiement sur un nouveau serveur** : suivre le guide pas a pas
+> **`Migration_1/MIGRATION.md`** (deploiement Docker + Caddy + TLS pour
+> `tcd.francedatareseau.fr`). Prerequis detailles dans **`config_fdr.md`**.
+
 L'application est une app Python standard deployable sur tout hebergement supportant Python :
 
 ```bash
@@ -187,7 +191,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
-**Important** : Changez la `secret_key` du `SessionMiddleware` dans `main.py` avant de deployer en production.
+**Important** : Definir une `SECRET_KEY` fixe dans le `.env` avant de deployer en
+production (sinon les sessions sont invalidees a chaque redemarrage).
 
 ### Conseils pour le vibecoding
 

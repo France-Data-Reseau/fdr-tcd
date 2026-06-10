@@ -10,3 +10,6 @@ __pycache__/
 screen.png
 screen_errors/
 *.md
+_INTERNE/
+*.csv
+Migration_1/
