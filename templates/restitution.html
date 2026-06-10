@@ -255,12 +255,26 @@
     });
 
     /* ---------- Carte ---------- */
+    var TARGET_SCALE = 32000000;      // échelle cartographique cible : 1:32 000 000
+    var FRANCE_CENTER = [46.7, 2.4];
+    // Zoom Web Mercator donnant l'échelle voulue à une latitude donnée (96 dpi)
+    function zoomForScale(scale, lat) {
+        var resVoulue = scale * 0.00026458333; // m/px (1 px = 0.264583 mm à 96 dpi)
+        var resZoom0 = 156543.03392 * Math.cos(lat * Math.PI / 180);
+        return Math.log2(resZoom0 / resVoulue);
+    }
+    function applyFranceScale() {
+        map.setView(FRANCE_CENTER, zoomForScale(TARGET_SCALE, FRANCE_CENTER[0]), { animate: false });
+    }
     function initMap() {
-        map = L.map('map').setView([46.6, 2.5], 6);
+        // zoomSnap:0 → autorise un zoom fractionnaire (échelle précise)
+        map = L.map('map', { zoomSnap: 0, zoomDelta: 0.5 });
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap', maxZoom: 18
         }).addTo(map);
+        L.control.scale({ metric: true, imperial: false, maxWidth: 150 }).addTo(map);
         markersLayer = L.layerGroup().addTo(map);
+        applyFranceScale();
     }
 
     /* ---------- Chargement ---------- */
@@ -611,16 +625,8 @@
         // collectivités d'outre-mer (Réunion, Antilles, Guyane…) étireraient la
         // vue jusqu'à centrer la carte au milieu de l'Atlantique / l'Afrique.
         // Les marqueurs DOM-TOM restent placés (accessibles en dézoomant).
-        var metro = bounds.filter(function(b) {
-            return b[0] >= 41 && b[0] <= 51.5 && b[1] >= -5.5 && b[1] <= 10;
-        });
-        // Toujours afficher la France métropolitaine (hexagone + Corse) en entier,
-        // quelles que soient les positions des points : un cadrage sur les seules
-        // données peut rogner un bord du territoire (coin sans collectivité).
-        var FRANCE_BOUNDS = [[41.3, -5.2], [51.3, 9.7]];
-        if (metro.length) map.fitBounds(FRANCE_BOUNDS, { padding: [10, 10] });
-        else if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
-        else map.fitBounds(FRANCE_BOUNDS, { padding: [10, 10] });
+        // Vue à échelle fixe (1:32M) centrée sur la France — voir initMap().
+        // On ne recadre pas sur les données (l'échelle resterait constante).
         updateMapLegend();
     }
 

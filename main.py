@@ -750,7 +750,9 @@ async def _get_sous_formulaires(projet_id: int, projet_nom: str = "") -> dict:
     result = {}
 
     cas_records = await grist.get_all_records("cas_d_usage")
-    result["cas_usages"] = [r for r in cas_records if r["fields"].get("projets") == projet_id]
+    result["cas_usages"] = [
+        r for r in cas_records if projet_id in grist.ref_ids(r["fields"].get("projets"))
+    ]
 
     part_records = await grist.get_all_records("partenaires")
     result["partenaires"] = []
@@ -834,11 +836,12 @@ async def cas_usage_nouveau(request: Request, projet_id: int, collectivite_id: i
     if redirect:
         return redirect
 
-    # Ne montrer que les cas d'usage non liés à un autre projet (ou déjà liés à celui-ci)
+    # Un cas d'usage peut être lié à plusieurs projets : on propose tous ceux
+    # qui ne sont pas DÉJÀ liés à CE projet.
     all_cas = await grist.get_all_records("cas_d_usage")
     linkable_ids = {
         r["id"] for r in all_cas
-        if not r["fields"].get("projets") or r["fields"].get("projets") == projet_id
+        if projet_id not in grist.ref_ids(r["fields"].get("projets"))
     }
     # On garde TOUS les thèmes (même ceux dont tous les cas sont déjà rattachés à
     # un autre projet) avec une liste éventuellement vide → le template affiche
@@ -897,7 +900,8 @@ async def cas_usage_creer(request: Request, projet_id: int):
             return _retour_formulaire()
         try:
             await grist.create_record(
-                "cas_d_usage", {"nom": nom, "theme": theme, "projets": projet_id}
+                "cas_d_usage",
+                {"nom": nom, "theme": theme, "projets": grist.to_reflist([projet_id])},
             )
             flash(request, "Cas d'usage créé et lié au projet !")
         except Exception as e:
@@ -907,15 +911,26 @@ async def cas_usage_creer(request: Request, projet_id: int):
         if not selected_ids:
             flash(request, "Sélectionnez au moins un cas d'usage à lier (ou créez-en un ci-dessous).", "error")
             return _retour_formulaire()
+        # Liaison multi-projets : on AJOUTE ce projet à la liste existante du cas.
+        all_cas = await grist.get_all_records("cas_d_usage")
+        cas_by_id = {r["id"]: r for r in all_cas}
+        nb_lies = 0
         for cas_id_str in selected_ids:
             cas_id = safe_int(cas_id_str)
-            if not cas_id:
+            if not cas_id or cas_id not in cas_by_id:
                 continue
+            projets = grist.ref_ids(cas_by_id[cas_id]["fields"].get("projets"))
+            if projet_id in projets:
+                continue
+            projets.append(projet_id)
             try:
-                await grist.update_record("cas_d_usage", cas_id, {"projets": projet_id})
+                await grist.update_record(
+                    "cas_d_usage", cas_id, {"projets": grist.to_reflist(projets)}
+                )
+                nb_lies += 1
             except Exception as e:
                 logger.error("Erreur liaison cas d'usage %s : %s", cas_id, e)
-        flash(request, f"{len(selected_ids)} cas d'usage lié(s) au projet !")
+        flash(request, f"{nb_lies} cas d'usage lié(s) au projet !")
 
     theme_redirect = form.get("nouveau_theme", "")
     action = form.get("action", "retour")

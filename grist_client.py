@@ -125,6 +125,23 @@ def _extract_values(v) -> list[str]:
     return []
 
 
+def ref_ids(v) -> list[int]:
+    """IDs d'un champ Ref/RefList Grist.
+    Accepte ['L', id1, id2, ...] (RefList), un int simple (Ref), ou None.
+    Rétro-compatible : marche que le champ soit une référence simple ou multiple.
+    """
+    if isinstance(v, list) and v and v[0] == "L":
+        return [x for x in v[1:] if isinstance(x, int) and x]
+    if isinstance(v, int) and v:
+        return [v]
+    return []
+
+
+def to_reflist(ids: list[int]) -> list:
+    """Format d'écriture d'une RefList Grist : ['L', id1, id2, ...]."""
+    return ["L"] + [int(i) for i in ids]
+
+
 def get_field_value(record: dict, field: str) -> str:
     """Retourne la première valeur d'un champ (string ou ChoiceList) pour comparaison template."""
     v = record.get("fields", {}).get(field)
@@ -423,16 +440,16 @@ async def get_restitution_data(force_refresh: bool = False) -> dict:
 
     projets_by_id = {p["id"]: p for p in projets}
 
-    # Index cas d'usage par projet
+    # Index cas d'usage par projet (un cas d'usage peut être lié à PLUSIEURS projets)
     cas_by_projet: dict[int, list] = {}
     for cu in cas_usages:
-        pid = cu["fields"].get("projets")
-        if pid and isinstance(pid, int):
-            cas_by_projet.setdefault(pid, []).append({
-                "nom": cu["fields"].get("nom", ""),
-                "theme": _extract_values(cu["fields"].get("theme"))[0]
-                if _extract_values(cu["fields"].get("theme")) else "",
-            })
+        cas_item = {
+            "nom": cu["fields"].get("nom", ""),
+            "theme": _extract_values(cu["fields"].get("theme"))[0]
+            if _extract_values(cu["fields"].get("theme")) else "",
+        }
+        for pid in ref_ids(cu["fields"].get("projets")):
+            cas_by_projet.setdefault(pid, []).append(cas_item)
 
     # Index partenaires par projet
     part_by_projet: dict[int, list] = {}
