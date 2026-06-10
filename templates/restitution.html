@@ -614,13 +614,13 @@
         var metro = bounds.filter(function(b) {
             return b[0] >= 41 && b[0] <= 51.5 && b[1] >= -5.5 && b[1] <= 10;
         });
-        if (metro.length) {
-            map.fitBounds(metro, { padding: [30, 30], maxZoom: 12 });
-            // Léger dézoom pour laisser une marge autour de la France
-            if (map.getZoom() > 5) map.setZoom(map.getZoom() - 1);
-        }
+        // Toujours afficher la France métropolitaine (hexagone + Corse) en entier,
+        // quelles que soient les positions des points : un cadrage sur les seules
+        // données peut rogner un bord du territoire (coin sans collectivité).
+        var FRANCE_BOUNDS = [[41.3, -5.2], [51.3, 9.7]];
+        if (metro.length) map.fitBounds(FRANCE_BOUNDS, { padding: [10, 10] });
         else if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
-        else map.setView([46.6, 2.5], 6);
+        else map.fitBounds(FRANCE_BOUNDS, { padding: [10, 10] });
         updateMapLegend();
     }
 
