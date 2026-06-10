@@ -32,12 +32,16 @@
             {% for theme, cas_list in cas_usage_by_theme.items() %}
             <div class="cas-usage-group" data-theme="{{ theme }}" style="display: none;">
                 <h4>{{ theme }}</h4>
+                {% if cas_list %}
                 {% for cas in cas_list %}
                 <div class="form-check">
                     <input type="checkbox" id="cas_{{ cas.id }}" name="cas_usage_ids" value="{{ cas.id }}">
                     <label for="cas_{{ cas.id }}">{{ cas.nom }}</label>
                 </div>
                 {% endfor %}
+                {% else %}
+                <p class="form-hint">Tous les cas d'usage de ce thème sont déjà rattachés à un projet. Créez-en un nouveau ci-dessous, ou choisissez un autre thème.</p>
+                {% endif %}
             </div>
             {% endfor %}
         </div>

@@ -614,7 +614,11 @@
         var metro = bounds.filter(function(b) {
             return b[0] >= 41 && b[0] <= 51.5 && b[1] >= -5.5 && b[1] <= 10;
         });
-        if (metro.length) map.fitBounds(metro, { padding: [30, 30], maxZoom: 12 });
+        if (metro.length) {
+            map.fitBounds(metro, { padding: [30, 30], maxZoom: 12 });
+            // Léger dézoom pour laisser une marge autour de la France
+            if (map.getZoom() > 5) map.setZoom(map.getZoom() - 1);
+        }
         else if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
         else map.setView([46.6, 2.5], 6);
         updateMapLegend();

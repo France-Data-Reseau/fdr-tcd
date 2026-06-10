@@ -766,11 +766,14 @@ async def cas_usage_nouveau(request: Request, projet_id: int, collectivite_id: i
         r["id"] for r in all_cas
         if not r["fields"].get("projets") or r["fields"].get("projets") == projet_id
     }
-    cas_usage_filtered = {}
-    for t, cas_list in grist.get_cas_usage_by_theme().items():
-        filtered = [c for c in cas_list if c["id"] in linkable_ids]
-        if filtered:
-            cas_usage_filtered[t] = filtered
+    # On garde TOUS les thèmes (même ceux dont tous les cas sont déjà rattachés à
+    # un autre projet) avec une liste éventuellement vide → le template affiche
+    # alors un message explicite plutôt qu'un thème vide silencieux.
+    cas_by_theme = grist.get_cas_usage_by_theme()
+    cas_usage_filtered = {
+        t: [c for c in cas_by_theme.get(t, []) if c["id"] in linkable_ids]
+        for t in grist.get_choices("cas_d_usage.theme")
+    }
 
     return templates.TemplateResponse("cas_usage.html", {
         "request": request,
