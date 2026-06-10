@@ -607,7 +607,15 @@
                 bounds.push([c.lat, c.lng]);
             }
         });
-        if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+        // Cadrage : ne tenir compte que des points métropolitains, sinon les
+        // collectivités d'outre-mer (Réunion, Antilles, Guyane…) étireraient la
+        // vue jusqu'à centrer la carte au milieu de l'Atlantique / l'Afrique.
+        // Les marqueurs DOM-TOM restent placés (accessibles en dézoomant).
+        var metro = bounds.filter(function(b) {
+            return b[0] >= 41 && b[0] <= 51.5 && b[1] >= -5.5 && b[1] <= 10;
+        });
+        if (metro.length) map.fitBounds(metro, { padding: [30, 30], maxZoom: 12 });
+        else if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
         else map.setView([46.6, 2.5], 6);
         updateMapLegend();
     }

@@ -796,9 +796,40 @@ async def cas_usage_creer(request: Request, projet_id: int):
     verify_csrf(request, form)
     collectivite_id = safe_int(form.get("collectivite_id"), 0)
 
+    # Deux formulaires distincts pointent vers cet endpoint :
+    #   mode=create → création d'un nouveau cas d'usage (champ "nouveau_nom")
+    #   mode=select → liaison de cas d'usage existants (cases "cas_usage_ids")
+    mode = form.get("mode", "")
     selected_ids = form.getlist("cas_usage_ids")
+    theme = form.get("nouveau_theme", "")
 
-    if selected_ids:
+    # Compat : si le mode n'est pas transmis, on déduit d'après les champs présents.
+    if not mode:
+        mode = "create" if form.get("nouveau_nom") is not None else "select"
+
+    def _retour_formulaire():
+        return RedirectResponse(
+            url=f"/projet/{projet_id}/cas-usage/nouveau?collectivite_id={collectivite_id}&theme={theme}",
+            status_code=303,
+        )
+
+    if mode == "create":
+        nom = form.get("nouveau_nom", "").strip()
+        if not nom:
+            flash(request, "Le nom du cas d'usage est obligatoire.", "error")
+            return _retour_formulaire()
+        try:
+            await grist.create_record(
+                "cas_d_usage", {"nom": nom, "theme": theme, "projets": projet_id}
+            )
+            flash(request, "Cas d'usage créé et lié au projet !")
+        except Exception as e:
+            logger.error("Erreur création cas d'usage : %s", e)
+            flash(request, "Une erreur s'est produite. Veuillez réessayer.", "error")
+    else:  # mode == "select"
+        if not selected_ids:
+            flash(request, "Sélectionnez au moins un cas d'usage à lier (ou créez-en un ci-dessous).", "error")
+            return _retour_formulaire()
         for cas_id_str in selected_ids:
             cas_id = safe_int(cas_id_str)
             if not cas_id:
@@ -808,29 +839,6 @@ async def cas_usage_creer(request: Request, projet_id: int):
             except Exception as e:
                 logger.error("Erreur liaison cas d'usage %s : %s", cas_id, e)
         flash(request, f"{len(selected_ids)} cas d'usage lié(s) au projet !")
-    else:
-        nom = form.get("nouveau_nom", "").strip()
-        theme = form.get("nouveau_theme", "")
-        if not nom:
-            flash(request, "Le nom du cas d'usage est obligatoire.", "error")
-            action = form.get("action", "retour")
-            redirect_url = (
-                f"/projet/{projet_id}/cas-usage/nouveau?collectivite_id={collectivite_id}&theme={theme}"
-                if action == "autre"
-                else f"/projet/{projet_id}/cas-usage/nouveau?collectivite_id={collectivite_id}&theme={theme}"
-            )
-            return RedirectResponse(url=redirect_url, status_code=303)
-        fields = {
-            "nom": nom,
-            "theme": theme,
-            "projets": projet_id,
-        }
-        try:
-            await grist.create_record("cas_d_usage", fields)
-            flash(request, "Cas d'usage créé et lié au projet !")
-        except Exception as e:
-            logger.error("Erreur création cas d'usage : %s", e)
-            flash(request, "Une erreur s'est produite. Veuillez réessayer.", "error")
 
     theme_redirect = form.get("nouveau_theme", "")
     action = form.get("action", "retour")
