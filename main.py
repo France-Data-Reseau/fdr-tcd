@@ -5,6 +5,7 @@ Application FastAPI — Formulaire de saisie pour Grist FNCCR.
 import os
 import secrets
 import logging
+from datetime import datetime
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
@@ -299,6 +300,7 @@ async def inscription_submit(request: Request):
         "Organisation": form.get("Organisation", "").strip(),
         "Collectivite": collectivite_id if collectivite_id else 0,
         "Droits": "En attente",
+        "Date_inscription": datetime.now().strftime("%Y-%m-%d %H:%M"),
     }
 
     try:
@@ -381,10 +383,20 @@ async def menu(request: Request):
     if redirect:
         return redirect
     user = get_user_session(request)
+    pending_count = 0
+    if user and user["droits"] == "Administrateur":
+        try:
+            users = await grist.get_all_records("utilisateurs")
+            pending_count = sum(
+                1 for u in users if u["fields"].get("Droits") == "En attente"
+            )
+        except Exception as e:
+            logger.error("Erreur comptage comptes en attente : %s", e)
     return templates.TemplateResponse("menu.html", {
         "request": request,
         "messages": get_flashed_messages(request),
         "user": user,
+        "pending_count": pending_count,
         "csrf_token": get_csrf_token(request),
     })
 
@@ -399,11 +411,16 @@ async def admin_console(request: Request):
     if redirect:
         return redirect
     users = await grist.get_all_records("utilisateurs")
+    # Comptes « En attente » en premier, puis ordre alphabétique
     users_sorted = sorted(
         users,
-        key=lambda r: ((r["fields"].get("Nom") or "").lower(),
-                       (r["fields"].get("Prenom") or "").lower()),
+        key=lambda r: (
+            r["fields"].get("Droits") != "En attente",
+            (r["fields"].get("Nom") or "").lower(),
+            (r["fields"].get("Prenom") or "").lower(),
+        ),
     )
+    pending_count = sum(1 for u in users if u["fields"].get("Droits") == "En attente")
     collectivites = grist.get_ref_records("collectivites")
     collectivites_sorted = sorted(
         collectivites, key=lambda r: (r["fields"].get("nom") or "").lower()
@@ -414,6 +431,7 @@ async def admin_console(request: Request):
         "users": users_sorted,
         "collectivites": collectivites_sorted,
         "droits_options": DROITS_ATTRIBUABLES,
+        "pending_count": pending_count,
         "messages": get_flashed_messages(request),
         "csrf_token": get_csrf_token(request),
     })

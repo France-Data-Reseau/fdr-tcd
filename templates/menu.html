@@ -52,20 +52,37 @@
                 <strong>Cartographie</strong>
                 <span>Cartes et statistiques</span>
             </a>
-
-            {% if user.droits == "Administrateur" %}
-            <a href="/admin" class="menu-btn">
-                <div class="menu-btn-icon">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                </div>
-                <strong>Console Administrateur</strong>
-                <span>Gérer les droits des utilisateurs</span>
-            </a>
-            {% endif %}
         </div>
+
+        {% if user.droits == "Administrateur" %}
+        <a href="/admin" class="menu-btn menu-btn-full">
+            <div class="menu-btn-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </div>
+            <div class="menu-btn-full-text">
+                <strong>Console Administrateur{% if pending_count %} <span class="notif-badge">{{ pending_count }}</span>{% endif %}</strong>
+                <span>{% if pending_count %}{{ pending_count }} compte(s) en attente de validation{% else %}Gérer les droits des utilisateurs{% endif %}</span>
+            </div>
+        </a>
+        {% endif %}
+
+        <style>
+            .menu-btn-full {
+                flex-direction: row; width: 100%; justify-content: flex-start;
+                gap: 1rem; margin-top: 0.75rem; padding: 1rem 1.25rem; text-align: left;
+            }
+            .menu-btn-full .menu-btn-full-text { display: flex; flex-direction: column; gap: 0.1rem; }
+            .menu-btn-full strong { display: flex; align-items: center; }
+            .notif-badge {
+                display: inline-flex; align-items: center; justify-content: center;
+                min-width: 20px; height: 20px; padding: 0 6px; margin-left: 0.4rem;
+                background: #e23b3b; color: #fff; border-radius: 999px;
+                font-size: 0.75rem; font-weight: 700;
+            }
+        </style>
 
         <div style="text-align:center;margin-top:1.25rem;">
             {% if user.droits == "Visiteur" %}
