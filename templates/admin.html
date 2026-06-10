@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Console Administrateur{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Console Administrateur</h2>
+    <p class="login-subtitle">
+        Gérez les droits des utilisateurs et leur collectivité de rattachement.
+        Les modifications sont enregistrées immédiatement dans la base.
+    </p>
+
+    <div class="admin-users">
+        <div class="admin-user-row admin-user-head">
+            <div class="admin-user-info"><strong>Utilisateur</strong></div>
+            <div class="admin-user-controls">
+                <span class="admin-col-label">Droits</span>
+                <span class="admin-col-label">Collectivité</span>
+                <span></span>
+            </div>
+        </div>
+
+        {% for u in users %}
+        <form method="post" action="/admin/utilisateur/{{ u.id }}" class="admin-user-row">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="admin-user-info">
+                <strong>{{ u.fields.Prenom }} {{ u.fields.Nom }}</strong>
+                <span class="admin-user-email">{{ u.fields.Email }}</span>
+                {% if u.fields.Organisation %}<span class="admin-user-org">{{ u.fields.Organisation }}</span>{% endif %}
+            </div>
+
+            <div class="admin-user-controls">
+                <select name="droits" aria-label="Droits">
+                    {% for d in droits_options %}
+                    <option value="{{ d }}" {% if u.fields.Droits == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+
+                <select name="collectivite" aria-label="Collectivité">
+                    <option value="0" {% if not u.fields.Collectivite %}selected{% endif %}>— Aucune —</option>
+                    {% for c in collectivites %}
+                    <option value="{{ c.id }}" {% if u.fields.Collectivite == c.id %}selected{% endif %}>{{ c.fields.nom }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .admin-users { display: flex; flex-direction: column; }
+    .admin-user-row {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100);
+        flex-wrap: wrap;
+    }
+    .admin-user-head { border-bottom: 2px solid var(--gray-200); padding-top: 0; }
+    .admin-user-info { flex: 1 1 240px; min-width: 220px; display: flex; flex-direction: column; gap: 0.1rem; }
+    .admin-user-email { font-size: 0.82rem; color: var(--gray-500); }
+    .admin-user-org { font-size: 0.78rem; color: var(--gray-400); }
+    .admin-user-controls {
+        display: flex; align-items: center; gap: 0.6rem; flex: 2 1 420px; flex-wrap: wrap;
+    }
+    .admin-user-controls select { min-width: 150px; flex: 1 1 150px; }
+    .admin-col-label { flex: 1 1 150px; font-size: 0.8rem; font-weight: 600; color: var(--gray-500); }
+    .admin-user-controls .btn { flex: 0 0 auto; }
+</style>
+{% endblock %}

@@ -192,6 +192,20 @@ def require_editor(request: Request) -> RedirectResponse | None:
     return None
 
 
+def require_admin(request: Request) -> RedirectResponse | None:
+    """Réservé aux administrateurs. Redirige sinon."""
+    user = get_user_session(request)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    if user["droits"] != "Administrateur":
+        return RedirectResponse(url="/", status_code=303)
+    return None
+
+
+# Droits attribuables depuis la console administrateur
+DROITS_ATTRIBUABLES = ["Administrateur", "Editeur", "Visiteur", "En attente"]
+
+
 # ============================================================
 # Auth : Login / Inscription / Logout
 # ============================================================
@@ -373,6 +387,66 @@ async def menu(request: Request):
         "user": user,
         "csrf_token": get_csrf_token(request),
     })
+
+
+# ============================================================
+# Console Administrateur : gestion des droits utilisateurs
+# ============================================================
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_console(request: Request):
+    redirect = require_admin(request)
+    if redirect:
+        return redirect
+    users = await grist.get_all_records("utilisateurs")
+    users_sorted = sorted(
+        users,
+        key=lambda r: ((r["fields"].get("Nom") or "").lower(),
+                       (r["fields"].get("Prenom") or "").lower()),
+    )
+    collectivites = grist.get_ref_records("collectivites")
+    collectivites_sorted = sorted(
+        collectivites, key=lambda r: (r["fields"].get("nom") or "").lower()
+    )
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "user": get_user_session(request),
+        "users": users_sorted,
+        "collectivites": collectivites_sorted,
+        "droits_options": DROITS_ATTRIBUABLES,
+        "messages": get_flashed_messages(request),
+        "csrf_token": get_csrf_token(request),
+    })
+
+
+@app.post("/admin/utilisateur/{user_id}")
+async def admin_update_user(request: Request, user_id: int):
+    redirect = require_admin(request)
+    if redirect:
+        return redirect
+    form = await request.form()
+    verify_csrf(request, form)
+    current = get_user_session(request)
+
+    droits = form.get("droits", "").strip()
+    collectivite_id = safe_int(form.get("collectivite"), 0)
+
+    # Garde-fou : un administrateur ne peut pas se retirer à lui-même le rôle Admin
+    if user_id == current["id"] and droits != "Administrateur":
+        flash(request, "Vous ne pouvez pas retirer votre propre rôle Administrateur.", "error")
+        return RedirectResponse(url="/admin", status_code=303)
+
+    fields = {"Collectivite": collectivite_id}
+    if droits in DROITS_ATTRIBUABLES:
+        fields["Droits"] = droits
+
+    try:
+        await grist.update_record("utilisateurs", user_id, fields)
+        flash(request, "Utilisateur mis à jour.")
+    except Exception as e:
+        logger.error("Erreur mise à jour utilisateur %s : %s", user_id, e)
+        flash(request, "Une erreur s'est produite lors de la mise à jour.", "error")
+    return RedirectResponse(url="/admin", status_code=303)
 
 
 # ============================================================
