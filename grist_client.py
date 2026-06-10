@@ -88,7 +88,7 @@ async def init_tables():
     # Mapping clé interne → nom réel de la table dans Grist
     mapping = {
         "collectivites": "BDD_Collectivites",
-        "projets": "Projets_Liste_des_projets",
+        "projets": "BDD_Projets",
         "contacts": "BDD_Contacts",
         "cas_d_usage": "BDD_CasUsages",
         "partenaires": "BDD_Partenaires",

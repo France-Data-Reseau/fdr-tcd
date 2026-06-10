@@ -836,12 +836,13 @@ async def cas_usage_nouveau(request: Request, projet_id: int, collectivite_id: i
     if redirect:
         return redirect
 
-    # Un cas d'usage peut être lié à plusieurs projets : on propose tous ceux
-    # qui ne sont pas DÉJÀ liés à CE projet.
+    # Un cas d'usage est rattaché à un projet (référence simple) : on ne propose
+    # que ceux non liés à un autre projet (ou déjà liés à celui-ci).
     all_cas = await grist.get_all_records("cas_d_usage")
     linkable_ids = {
         r["id"] for r in all_cas
-        if projet_id not in grist.ref_ids(r["fields"].get("projets"))
+        if not grist.ref_ids(r["fields"].get("projets"))
+        or projet_id in grist.ref_ids(r["fields"].get("projets"))
     }
     # On garde TOUS les thèmes (même ceux dont tous les cas sont déjà rattachés à
     # un autre projet) avec une liste éventuellement vide → le template affiche
@@ -900,8 +901,7 @@ async def cas_usage_creer(request: Request, projet_id: int):
             return _retour_formulaire()
         try:
             await grist.create_record(
-                "cas_d_usage",
-                {"nom": nom, "theme": theme, "projets": grist.to_reflist([projet_id])},
+                "cas_d_usage", {"nom": nom, "theme": theme, "projets": projet_id}
             )
             flash(request, "Cas d'usage créé et lié au projet !")
         except Exception as e:
@@ -911,22 +911,13 @@ async def cas_usage_creer(request: Request, projet_id: int):
         if not selected_ids:
             flash(request, "Sélectionnez au moins un cas d'usage à lier (ou créez-en un ci-dessous).", "error")
             return _retour_formulaire()
-        # Liaison multi-projets : on AJOUTE ce projet à la liste existante du cas.
-        all_cas = await grist.get_all_records("cas_d_usage")
-        cas_by_id = {r["id"]: r for r in all_cas}
         nb_lies = 0
         for cas_id_str in selected_ids:
             cas_id = safe_int(cas_id_str)
-            if not cas_id or cas_id not in cas_by_id:
+            if not cas_id:
                 continue
-            projets = grist.ref_ids(cas_by_id[cas_id]["fields"].get("projets"))
-            if projet_id in projets:
-                continue
-            projets.append(projet_id)
             try:
-                await grist.update_record(
-                    "cas_d_usage", cas_id, {"projets": grist.to_reflist(projets)}
-                )
+                await grist.update_record("cas_d_usage", cas_id, {"projets": projet_id})
                 nb_lies += 1
             except Exception as e:
                 logger.error("Erreur liaison cas d'usage %s : %s", cas_id, e)
