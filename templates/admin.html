@@ -31,23 +31,23 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
 
             <div class="admin-user-info">
-                <strong>{{ u.fields.Prenom }} {{ u.fields.Nom }}{% if u.fields.Droits == "En attente" %} <span class="notif-badge notif-badge-text">À valider</span>{% endif %}</strong>
-                <span class="admin-user-email">{{ u.fields.Email }}</span>
-                {% if u.fields.Organisation %}<span class="admin-user-org">{{ u.fields.Organisation }}</span>{% endif %}
-                <span class="admin-user-date">{% if u.fields.Date_inscription %}Inscrit le {{ u.fields.Date_inscription }}{% else %}Date d'inscription inconnue{% endif %}</span>
+                <strong>{{ u.prenom }} {{ u.nom }}{% if u.droits == "En attente" %} <span class="notif-badge notif-badge-text">À valider</span>{% endif %}</strong>
+                <span class="admin-user-email">{{ u.email }}</span>
+                {% if u.organisation %}<span class="admin-user-org">{{ u.organisation }}</span>{% endif %}
+                <span class="admin-user-date">{% if u.date_inscription %}Inscrit le {{ u.date_inscription }}{% else %}Date d'inscription inconnue{% endif %}</span>
             </div>
 
             <div class="admin-user-controls">
-                <select name="droits" aria-label="Droits">
+                <select name="droits" aria-label="droits">
                     {% for d in droits_options %}
-                    <option value="{{ d }}" {% if u.fields.Droits == d %}selected{% endif %}>{{ d }}</option>
+                    <option value="{{ d }}" {% if u.droits == d %}selected{% endif %}>{{ d }}</option>
                     {% endfor %}
                 </select>
 
                 <select name="collectivite" aria-label="Collectivité">
-                    <option value="0" {% if not u.fields.Collectivite %}selected{% endif %}>— Aucune —</option>
+                    <option value="0" {% if not u.collectivite %}selected{% endif %}>— Aucune —</option>
                     {% for c in collectivites %}
-                    <option value="{{ c.id }}" {% if u.fields.Collectivite == c.id %}selected{% endif %}>{{ c.fields.nom }}</option>
+                    <option value="{{ c.id }}" {% if u.collectivite == c.id %}selected{% endif %}>{{ c.nom }}</option>
                     {% endfor %}
                 </select>
 

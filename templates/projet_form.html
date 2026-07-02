@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}FNCCR — {% if mode == 'creation' %}Nouveau projet{% else %}{{ record.fields.nom }}{% endif %}{% endblock %}
+{% block title %}FNCCR — {% if mode == 'creation' %}Nouveau projet{% else %}{{ record.nom }}{% endif %}{% endblock %}
 
 {% block content %}
 <a href="{% if collectivite_id %}/collectivite/{{ collectivite_id }}{% else %}/{% endif %}" class="btn-back">
@@ -15,7 +15,7 @@
 {% endif %}
 
 <div class="card">
-    <h2>{% if mode == 'creation' %}Nouveau projet{% else %}Modifier : {{ record.fields.nom }}{% endif %}</h2>
+    <h2>{% if mode == 'creation' %}Nouveau projet{% else %}Modifier : {{ record.nom }}{% endif %}</h2>
 
     {% if collectivite_nom %}
     <div class="form-group">
@@ -30,12 +30,12 @@
 
         <div class="form-group">
             <label for="nom">Nom du projet</label>
-            <input type="text" id="nom" name="nom" value="{{ record.fields.nom if record else '' }}" required>
+            <input type="text" id="nom" name="nom" value="{{ record.nom if record else '' }}" required>
         </div>
 
         <div class="form-group">
             <label for="description">Description</label>
-            <textarea id="description" name="description" rows="4">{{ record.fields.description if record else '' }}</textarea>
+            <textarea id="description" name="description" rows="4">{{ record.description if record else '' }}</textarea>
         </div>
 
         <div class="form-row">
@@ -61,22 +61,19 @@
 
         <div class="form-row">
             <div class="form-group">
-                <label for="connectivite_s_">Connectivité(s)</label>
-                <select id="connectivite_s_" name="connectivite_s_">
-                    <option value="">—</option>
+                <label for="connectivites">Connectivité(s)</label>
+                {% set sel_conn = ref_ids_of(record, 'connectivites') %}
+                <select id="connectivites" name="connectivites" multiple size="6">
                     {% for opt in choices.connectivites %}
-                    <option value="{{ opt }}" {% if record and grist_field(record, 'connectivite_s_') == opt %}selected{% endif %}>{{ opt }}</option>
+                    <option value="{{ opt.id }}" {% if opt.id in sel_conn %}selected{% endif %}>{{ opt.nom }}</option>
                     {% endfor %}
                 </select>
+                <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs.</small>
             </div>
             <div class="form-group">
-                <label for="domaine_s_">Domaine(s)</label>
-                <select id="domaine_s_" name="domaine_s_">
-                    <option value="">—</option>
-                    {% for opt in choices.domaine_s_ %}
-                    <option value="{{ opt }}" {% if record and grist_field(record, 'domaine_s_') == opt %}selected{% endif %}>{{ opt }}</option>
-                    {% endfor %}
-                </select>
+                <label>Thème(s)</label>
+                <input type="text" value="" disabled placeholder="Déduits des cas d'usage">
+                <small class="form-hint">Les domaines sont calculés automatiquement à partir des cas d'usage du projet.</small>
             </div>
         </div>
 
@@ -94,63 +91,58 @@
             </div>
             <div class="form-group">
                 <label for="soutien">Soutien</label>
-                <input type="text" id="soutien" name="soutien"
-                    list="list-soutien"
-                    value="{{ grist_field(record, 'soutien') if record else '' }}">
-                <datalist id="list-soutien">
+                <select id="soutien" name="soutien">
+                    <option value="">—</option>
                     {% for opt in choices.soutien %}
-                    <option value="{{ opt }}">
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'soutien') == opt %}selected{% endif %}>{{ opt }}</option>
                     {% endfor %}
-                </datalist>
+                </select>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="contrat">Contrat</label>
-            <input type="text" id="contrat" name="contrat"
-                list="list-contrat"
-                value="{{ grist_field(record, 'contrat') if record else '' }}">
-            <datalist id="list-contrat">
-                {% for opt in choices.contrat %}
-                <option value="{{ opt }}">
+            <label for="contrats">Contrat(s)</label>
+            {% set sel_contrat = ref_ids_of(record, 'contrats') %}
+            <select id="contrats" name="contrats" multiple size="5">
+                {% for opt in choices.contrats %}
+                <option value="{{ opt.id }}" {% if opt.id in sel_contrat %}selected{% endif %}>{{ opt.nom }}</option>
                 {% endfor %}
-            </datalist>
+            </select>
+            <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs.</small>
         </div>
 
         <div class="form-check">
             <input type="checkbox" id="dev_interne" name="dev_interne" value="1"
-                {% if record and record.fields.dev_interne %}checked{% endif %}>
+                {% if record and record.dev_interne %}checked{% endif %}>
             <label for="dev_interne">Développement interne</label>
         </div>
 
         <div class="form-group">
-            <label for="solution_s_">Solution(s)</label>
-            <input type="text" id="solution_s_" name="solution_s_" value="{{ record.fields.solution_s_ if record else '' }}">
-        </div>
-
-        <div class="form-group">
-            <label for="beneficiaires">Bénéficiaires</label>
-            <textarea id="beneficiaires" name="beneficiaires" rows="3">{{ record.fields.beneficiaires if record and record.fields.beneficiaires else '' }}</textarea>
+            <label for="solutions">Solution(s)</label>
+            {% set sel_sol = ref_ids_of(record, 'solutions') %}
+            <select id="solutions" name="solutions" multiple size="6">
+                {% for opt in choices.solutions %}
+                <option value="{{ opt.id }}" {% if opt.id in sel_sol %}selected{% endif %}>{{ opt.nom }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs.</small>
         </div>
 
         <div class="form-row">
             <div class="form-group">
-                <label for="departement_s_">Département(s)</label>
-                <select id="departement_s_" name="departement_s_" onchange="autoFillRegion(this)">
-                    <option value="">—</option>
-                    {% for dep in choices.departements %}
-                    <option value="{{ dep }}" {% if record and grist_field(record, 'departement_s_') == dep %}selected{% endif %}>{{ dep }}</option>
+                <label for="departements">Département(s)</label>
+                {% set sel_dep = ref_ids_of(record, 'departements') %}
+                <select id="departements" name="departements" multiple size="6">
+                    {% for d in choices.departements %}
+                    <option value="{{ d.id }}" {% if d.id in sel_dep %}selected{% endif %}>{{ d.num_dep }} - {{ d.nom }}</option>
                     {% endfor %}
                 </select>
+                <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs. La région est déduite automatiquement.</small>
             </div>
             <div class="form-group">
-                <label for="region">Région</label>
-                <select id="region" name="region">
-                    <option value="">—</option>
-                    {% for opt in choices.region %}
-                    <option value="{{ opt }}" {% if record and grist_field(record, 'region') == opt %}selected{% endif %}>{{ opt }}</option>
-                    {% endfor %}
-                </select>
+                <label>Région</label>
+                <input type="text" value="{{ record.region if record else '' }}" disabled
+                       placeholder="Déduite du/des département(s)">
             </div>
         </div>
 
@@ -200,7 +192,7 @@
     <h3>Cas d'usage</h3>
     <ul class="record-list">
         {% for r in sous_formulaires.cas_usages %}
-        <li><span>{{ r.fields.nom }}</span><span class="record-meta">{{ r.fields.theme }}</span></li>
+        <li><span>{{ r.nom }}</span><span class="record-meta">{{ grist_field(r, 'theme') }}</span></li>
         {% endfor %}
     </ul>
 </div>
@@ -211,7 +203,7 @@
     <h3>Partenaires</h3>
     <ul class="record-list">
         {% for r in sous_formulaires.partenaires %}
-        <li><span>{{ r.fields.nom }}</span><span class="record-meta">{{ r.fields.role_s_ }}</span></li>
+        <li><span>{{ r.nom }}</span><span class="record-meta">{{ grist_field(r, 'roles') }}</span></li>
         {% endfor %}
     </ul>
 </div>
@@ -222,7 +214,7 @@
     <h3>Programmes</h3>
     <ul class="record-list">
         {% for r in sous_formulaires.programmes %}
-        <li><span>{{ r.fields.nom }}</span><span class="record-meta">{{ r.fields.echelle }}</span></li>
+        <li><span>{{ r.nom }}</span><span class="record-meta">{{ r.echelle }}</span></li>
         {% endfor %}
     </ul>
 </div>
@@ -233,7 +225,7 @@
     <h3>Documents</h3>
     <ul class="record-list">
         {% for r in sous_formulaires.documents %}
-        <li><span>{{ r.fields.titre }}</span><span class="record-meta">{{ r.fields.type }}</span></li>
+        <li><span>{{ r.titre }}</span><span class="record-meta">{{ grist_field(r, 'type') }}</span></li>
         {% endfor %}
     </ul>
 </div>
@@ -245,8 +237,8 @@
     <ul class="record-list">
         {% for r in sous_formulaires.contacts %}
         <li>
-            <span>{{ r.fields.prenom }} {{ r.fields.nom }}{% if r.fields.elu_e %} — Élu·e{% endif %}</span>
-            <span class="record-meta">{{ r.fields.fonction }}{% if r.fields.email %} · {{ r.fields.email }}{% endif %}</span>
+            <span>{{ r.prenom }} {{ r.nom }}{% if r.elu %} — Élu·e{% endif %}</span>
+            <span class="record-meta">{{ r.fonction }}{% if r.email %} · {{ r.email }}{% endif %}</span>
         </li>
         {% endfor %}
     </ul>
@@ -255,19 +247,4 @@
 {% endif %}
 {% endblock %}
 
-{% block scripts %}
-<script>
-var DEP_TO_REGION = {{ dep_to_region_json }};
-
-function autoFillRegion(select) {
-    var val = select.value;
-    if (val) {
-        var numDep = val.split(' - ')[0].trim();
-        var region = DEP_TO_REGION[numDep] || '';
-        document.getElementById('region').value = region;
-    } else {
-        document.getElementById('region').value = '';
-    }
-}
-</script>
-{% endblock %}
+{% block scripts %}{% endblock %}

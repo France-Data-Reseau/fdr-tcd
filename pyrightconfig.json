@@ -1,0 +1,12 @@
+{
+    "include": ["app", "scripts", "tests"],
+    "exclude": [
+        ".venv",
+        "KIT_REBUILD_V2",
+        "revues"
+    ],
+    "venvPath": ".",
+    "venv": ".venv",
+    "pythonVersion": "3.11",
+    "typeCheckingMode": "standard"
+}

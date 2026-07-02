@@ -1,0 +1,33 @@
+# Garde-fou CI (R2 des revues) : rien ne part en déploiement sans cette
+# séquence au vert. S'exécute sur chaque push dès que le dépôt est sur GitHub.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verification:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Installer les dépendances
+        run: uv sync --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check app tests scripts
+
+      - name: Typage (pyright)
+        run: uv run pyright
+
+      - name: Tests (pytest)
+        run: uv run pytest -q
+        env:
+          GRIST_API_KEY: cle-factice-ci
+          GRIST_DOC_ID: doc-factice-ci
+          GRIST_SERVER_URL: https://grist.exemple.test
+          ENVIRONMENT: test

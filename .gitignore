@@ -1,10 +1,23 @@
+# Secrets — jamais commités
+.env
+
+# Python
 __pycache__/
 *.pyc
-.env
-.claude/
-*.png
-venv/
 .venv/
-# Fichiers internes — NE PAS transmettre au client
-_INTERNE/
-*.csv
+.pytest_cache/
+.ruff_cache/
+
+# Matériel de travail (non livré, non versionné — peut contenir des données réelles)
+KIT_REBUILD_V2/
+revues/
+.claude/
+
+# Artefacts
+*.tar
+*.tar.gz
+exports_grist/
+wheels/
+
+# Google Drive
+desktop.ini

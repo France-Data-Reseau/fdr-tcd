@@ -1,0 +1,45 @@
+[project]
+name = "app-fdr-v2"
+version = "0.1.0"
+description = "FNCCR — Cartographie des Usages TCD des Collectivités (V2)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "jinja2>=3.1",
+    "pygrister>=0.9.1",
+    "pydantic[email]>=2.9",
+    "pydantic-settings>=2.6",
+    "python-multipart>=0.0.20",
+    "itsdangerous>=2.2",
+    "slowapi>=0.1.9",
+    "httpx>=0.28",
+    "authlib>=1.3",
+    "argon2-cffi>=23.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.8",
+    "pyright>=1.1.390",
+    "pre-commit>=4",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Depends(...) / Form(...) en valeur par défaut : idiome FastAPI standard
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Form"]

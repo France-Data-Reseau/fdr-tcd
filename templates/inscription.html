@@ -5,40 +5,52 @@
 <div class="login-wrapper">
     <div class="card">
         <h2>Demande d'accès</h2>
-        <p class="login-subtitle">Votre adresse email n'est pas encore enregistrée. Remplissez le formulaire ci-dessous pour demander un accès.</p>
+        <p class="login-subtitle">Remplissez le formulaire ci-dessous pour demander un accès à l'application.</p>
 
         <form method="post" action="/inscription">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <div class="form-row">
                 <div class="form-group">
-                    <label for="Prenom">Prénom</label>
-                    <input type="text" id="Prenom" name="Prenom" required placeholder="Prénom">
+                    <label for="prenom">Prénom</label>
+                    <input type="text" id="prenom" name="prenom" required placeholder="Prénom">
                 </div>
                 <div class="form-group">
-                    <label for="Nom">Nom</label>
-                    <input type="text" id="Nom" name="Nom" required placeholder="Nom">
+                    <label for="nom">Nom</label>
+                    <input type="text" id="nom" name="nom" required placeholder="nom">
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="Email">Adresse email</label>
-                <input type="email" id="Email" name="Email" required value="{{ prefill_email or '' }}" placeholder="prenom.nom@exemple.fr">
+                <label for="email">Adresse email</label>
+                <input type="email" id="email" name="email" required value="{{ prefill_email or '' }}" placeholder="prenom.nom@exemple.fr">
             </div>
 
             <div class="form-group">
-                <label for="Collectivite">Collectivité</label>
-                <select id="Collectivite" name="Collectivite">
+                <label for="collectivite">Collectivité</label>
+                <select id="collectivite" name="collectivite">
                     <option value="0">-- Sélectionner une collectivité --</option>
                     {% for coll in collectivites %}
-                    <option value="{{ coll.id }}">{{ coll.fields.nom }}</option>
+                    <option value="{{ coll.id }}">{{ coll.nom }}</option>
                     {% endfor %}
                 </select>
                 <small class="form-hint">Si votre collectivité n'apparaît pas dans la liste, les administrateurs l'ajouteront.</small>
             </div>
 
             <div class="form-group">
-                <label for="Organisation">Organisation</label>
-                <input type="text" id="Organisation" name="Organisation" placeholder="Nom de votre organisation (optionnel)">
+                <label for="organisation">Organisation</label>
+                <input type="text" id="organisation" name="organisation" placeholder="Nom de votre organisation (optionnel)">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" name="password" required autocomplete="new-password">
+                    <small class="form-hint">Au moins 12 caractères. Privilégiez une phrase de passe.</small>
+                </div>
+                <div class="form-group">
+                    <label for="password_confirm">Confirmer le mot de passe</label>
+                    <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password">
+                </div>
             </div>
 
             <div class="btn-group" style="justify-content: center; margin-top: 1.25rem;">

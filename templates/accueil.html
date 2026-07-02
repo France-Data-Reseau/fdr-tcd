@@ -11,10 +11,10 @@
 
     <ul class="collectivite-list" id="coll-list">
         {% for coll in collectivites %}
-        <li data-nom="{{ coll.fields.nom|lower }}">
+        <li data-nom="{{ coll.nom|lower }}">
             <a href="/collectivite/{{ coll.id }}">
-                <span>{{ coll.fields.nom }}</span>
-                {% set dep = coll.fields.num_dep %}{% set statut = grist_field(coll, 'statut') %}
+                <span>{{ coll.nom }}</span>
+                {% set dep = coll.num_dep %}{% set statut = grist_field(coll, 'statut') %}
                 <span class="coll-meta">{% if dep or statut %}[{{ dep }}{% if dep and statut %} — {% endif %}{{ statut }}]{% endif %}</span>
             </a>
         </li>
@@ -33,30 +33,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-var searchInput = document.getElementById('search');
-var items = document.querySelectorAll('#coll-list li');
-var noResults = document.getElementById('no-results');
-
-searchInput.addEventListener('input', function() {
-    var query = this.value.toLowerCase().trim();
-    var visibleCount = 0;
-    items.forEach(function(item) {
-        var nom = item.getAttribute('data-nom');
-        if (!query || nom.indexOf(query) !== -1) {
-            item.classList.remove('hidden');
-            visibleCount++;
-        } else {
-            item.classList.add('hidden');
-        }
-    });
-    if (query && visibleCount === 0) {
-        noResults.classList.add('visible');
-    } else {
-        noResults.classList.remove('visible');
-    }
-});
-
-searchInput.focus();
-</script>
+<script src="/static/js/accueil.js" defer></script>
 {% endblock %}

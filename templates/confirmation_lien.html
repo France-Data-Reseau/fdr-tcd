@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Connexion{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="card" style="text-align: center;">
+        <h2>Confirmer la connexion</h2>
+        <p class="login-subtitle">Cliquez sur le bouton ci-dessous pour vous connecter à l'application.</p>
+
+        <form method="post" action="/auth/verifier">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="token" value="{{ token }}">
+            <div class="btn-group" style="justify-content: center; margin-top: 1.25rem;">
+                <button type="submit" class="btn btn-primary">Se connecter</button>
+            </div>
+        </form>
+
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="/login" style="font-size: 0.85rem; color: var(--gray-500);">Retour à la connexion</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

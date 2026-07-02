@@ -19,7 +19,7 @@
             {% for p in partenaires_existants %}
             <li>
                 <input type="radio" id="part_{{ p.id }}" name="partenaire_existant_id" value="{{ p.id }}">
-                <label for="part_{{ p.id }}">{{ p.fields.nom }}{% if p.fields.role_s_ %} — {{ p.fields.role_s_ }}{% endif %}</label>
+                <label for="part_{{ p.id }}">{{ p.nom }}{% if grist_field(p, 'roles') %} — {{ grist_field(p, 'roles') }}{% endif %}</label>
             </li>
             {% endfor %}
         </div>
@@ -47,10 +47,10 @@
         </div>
 
         <div class="form-group">
-            <label for="role_s_">Rôle(s)</label>
-            <input type="text" id="role_s_" name="role_s_" list="list-roles">
+            <label for="roles">Rôle(s)</label>
+            <input type="text" id="roles" name="roles" list="list-roles">
             <datalist id="list-roles">
-                {% for opt in choices.role_s_ %}
+                {% for opt in choices.roles %}
                 <option value="{{ opt }}">
                 {% endfor %}
             </datalist>

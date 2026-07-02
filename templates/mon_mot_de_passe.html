@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Mot de passe{% endblock %}
+
+{% block content %}
+<a href="/" class="btn-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    Retour à l'accueil
+</a>
+
+<div class="login-wrapper">
+    <div class="card">
+        <h2>Changer mon mot de passe</h2>
+        <p class="login-subtitle">Renseignez votre mot de passe actuel puis le nouveau.</p>
+
+        <form method="post" action="/mon-mot-de-passe">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="form-group">
+                <label for="actuel">Mot de passe actuel</label>
+                <input type="password" id="actuel" name="actuel" required autocomplete="current-password">
+            </div>
+            <div class="form-group">
+                <label for="nouveau">Nouveau mot de passe</label>
+                <input type="password" id="nouveau" name="nouveau" required autocomplete="new-password">
+                <small class="form-hint">Au moins 12 caractères. Privilégiez une phrase de passe.</small>
+            </div>
+            <div class="form-group">
+                <label for="confirmation">Confirmer le nouveau mot de passe</label>
+                <input type="password" id="confirmation" name="confirmation" required autocomplete="new-password">
+            </div>
+            <div class="btn-group" style="justify-content: center; margin-top: 1.25rem;">
+                <button type="submit" class="btn btn-primary">Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

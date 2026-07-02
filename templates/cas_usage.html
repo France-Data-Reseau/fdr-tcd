@@ -20,7 +20,7 @@
 
         <div class="form-group">
             <label for="theme_filter">Thème</label>
-            <select id="theme_filter" onchange="filterByTheme(this.value)">
+            <select id="theme_filter" data-selected-theme="{{ selected_theme }}">
                 <option value="">— Choisir un thème —</option>
                 {% for theme in themes %}
                 <option value="{{ theme }}" {% if theme == selected_theme %}selected{% endif %}>{{ theme }}</option>
@@ -89,19 +89,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-function filterByTheme(theme) {
-    var groups = document.querySelectorAll('.cas-usage-group');
-    groups.forEach(function(g) {
-        if (!theme || g.getAttribute('data-theme') === theme) {
-            g.style.display = 'block';
-        } else {
-            g.style.display = 'none';
-        }
-    });
-}
-{% if selected_theme %}
-document.addEventListener('DOMContentLoaded', function() { filterByTheme({{ selected_theme | tojson }}); });
-{% endif %}
-</script>
+<script src="/static/js/cas_usage.js" defer></script>
 {% endblock %}

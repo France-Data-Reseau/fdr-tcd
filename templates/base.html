@@ -49,15 +49,6 @@
     </footer>
 
     {% block scripts %}{% endblock %}
-<script>
-document.addEventListener('submit', function(e) {
-    var form = e.target;
-    var btns = form.querySelectorAll('button[type="submit"]');
-    btns.forEach(function(btn) {
-        btn.disabled = true;
-        btn.style.opacity = '0.6';
-    });
-});
-</script>
+<script src="/static/js/app.js" defer></script>
 </body>
 </html>
