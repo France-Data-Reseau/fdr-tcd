@@ -13,11 +13,14 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Dépendances : install 100 % hors-ligne depuis les wheels embarquées
-COPY requirements.txt ./
-COPY wheels/ wheels/
-RUN pip install --no-cache-dir --no-index --find-links=wheels/ -r requirements.txt \
-    && rm -rf wheels/
+# Installer uv (gestionnaire de paquets) et synchroniser les dépendances
+# depuis le lockfile pour des builds reproductibles.
+RUN pip install --no-cache-dir uv
+
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Code applicatif (tests/docs/kit exclus par .dockerignore)
 COPY app/ app/
