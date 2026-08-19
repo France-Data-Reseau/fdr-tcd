@@ -44,5 +44,5 @@ logs:
 ps:
 	$(COMPOSE) ps
 
-shell-web:
-	$(COMPOSE) exec web bash
+shell-app:
+	$(COMPOSE) exec app bash
