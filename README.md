@@ -37,6 +37,43 @@ uv run pytest                         # tests (Grist mocké, aucune donnée rée
 
 Rien ne part en déploiement sans cette séquence au vert.
 
+## Tester Le SSO En Local (Keycloak)
+
+Le fichier [fdr-realm.json](fdr-realm.json) initialise un realm `fdr` avec :
+- client OIDC `tcd`
+- utilisateur de test `testuser` / `test123`
+- email `test@collectivite.fr`
+
+1. Démarrer les services de dev :
+
+```bash
+make up
+```
+
+2. Configurer le `.env` local (valeurs de dev) :
+
+```env
+APP_PUBLIC_URL=http://keycloak.localhost:8001
+OIDC_ISSUER=http://localhost:8080/realms/fdr
+OIDC_CLIENT_ID=tcd
+OIDC_CLIENT_SECRET=tcd-dev-secret
+```
+
+3. Vérifier le flux de redirection SSO :
+
+```bash
+uv run python -m scripts.check_sso_keycloak
+```
+
+4. Test manuel bout-en-bout :
+- ouvrir http://keycloak.localhost:8001/login
+- cliquer sur « Se connecter avec France Data Réseau »
+- se connecter sur Keycloak avec `testuser` / `test123`
+- vérifier la redirection callback et l'ouverture de session app
+
+Note : pour une connexion complète au menu applicatif (au lieu d'une redirection vers
+`/inscription`), l'email OIDC (`test@collectivite.fr`) doit exister dans `BDD_Utilisateurs`.
+
 ## Structure
 
 ```

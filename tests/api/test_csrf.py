@@ -4,7 +4,7 @@ import pytest
 
 from tests.conftest import connecter
 
-POSTS_PUBLICS = ["/login", "/inscription", "/auth/verifier"]
+POSTS_PUBLICS = ["/inscription"]
 
 
 @pytest.mark.parametrize("route", POSTS_PUBLICS)

@@ -1,28 +1,39 @@
-"""SSO OIDC — Relying Party vers l'IdP de France Data Réseau.
+"""SSO OIDC — client web server-side vers l'IdP de France Data Réseau.
 
-« Se connecter avec son compte Grist » : l'instance grist.francedatareseau.fr
-n'est pas un fournisseur d'identité, mais elle s'appuie sur un IdP OIDC chez
-France Data Réseau — c'est sur LUI que l'app se branche. Tout est configuré
-en .env (OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET) : tant que ces
-variables sont vides, le SSO est désactivé et le magic link reste le seul
-moyen de connexion ; quand elles sont renseignées, le bouton apparaît sur la
-page de login. Le pipeline aval est COMMUN aux deux méthodes : email vérifié
-→ mapping BDD_Utilisateurs (référentiel des rôles).
+Le flux suit l'authorization code :
+- /auth/sso redirige vers l'IdP avec state + nonce ;
+- /auth/callback échange le code contre un id_token ;
+- l'id_token est validé avec fastapi-oidc ;
+- on n'accepte que les emails vérifiés.
 
 Sécurité :
 - redirect URI bâtie EXCLUSIVEMENT sur APP_PUBLIC_URL (jamais le header Host) ;
-- state/nonce gérés par authlib via la session signée (anti-CSRF du flux) ;
-- seuls les emails VÉRIFIÉS par l'IdP sont acceptés.
+- state/nonce/PKCE stockés en session signée ;
+- messages d'erreur sobres côté utilisateur.
 """
 
+import base64
+import hashlib
 import logging
+import secrets
+from urllib.parse import urlencode
 
-from authlib.integrations.starlette_client import OAuth, OAuthError
+import httpx
 from fastapi import Request
+from fastapi_oidc import IDToken, get_auth
 
 from app.core.config import Settings
 
 logger = logging.getLogger(__name__)
+
+_SESSION_STATE_KEY = "oidc_state"
+_SESSION_NONCE_KEY = "oidc_nonce"
+_SESSION_PKCE_VERIFIER_KEY = "oidc_pkce_verifier"
+
+
+def _pkce_s256_challenge(verifier: str) -> str:
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
 
 
 class OidcService:
@@ -31,17 +42,17 @@ class OidcService:
         self.enabled = bool(
             settings.OIDC_ISSUER
             and settings.OIDC_CLIENT_ID
-            and settings.OIDC_CLIENT_SECRET
         )
-        self._oauth = OAuth()
+        self._issuer = settings.OIDC_ISSUER.rstrip("/")
+        self._metadata_url = f"{self._issuer}/.well-known/openid-configuration"
+        self._metadata: dict[str, str] | None = None
+        self._authenticate = None
         if self.enabled:
-            issuer = settings.OIDC_ISSUER.rstrip("/")
-            self._oauth.register(
-                name="fdr",
+            self._authenticate = get_auth(
                 client_id=settings.OIDC_CLIENT_ID,
-                client_secret=settings.OIDC_CLIENT_SECRET,
-                server_metadata_url=f"{issuer}/.well-known/openid-configuration",
-                client_kwargs={"scope": "openid email profile"},
+                base_authorization_server_uri=self._issuer,
+                issuer=self._issuer,
+                signature_cache_ttl=300,
             )
 
     @property
@@ -49,33 +60,118 @@ class OidcService:
         # Jamais le Host de la requête (anti-empoisonnement d'en-tête)
         return f"{self._settings.APP_PUBLIC_URL.rstrip('/')}/auth/callback"
 
-    async def authorize_redirect(self, request: Request):
-        """Démarre le flux : redirection vers l'IdP (state posé en session)."""
-        return await self._oauth.fdr.authorize_redirect(request, self.redirect_uri)
+    async def _get_metadata(self) -> dict[str, str]:
+        if self._metadata is not None:
+            return self._metadata
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(self._metadata_url)
+            response.raise_for_status()
+            data = response.json()
+        authorization_endpoint = str(data.get("authorization_endpoint") or "")
+        token_endpoint = str(data.get("token_endpoint") or "")
+        if not authorization_endpoint or not token_endpoint:
+            raise ValueError("metadata OIDC incomplètes")
+        self._metadata = {
+            "authorization_endpoint": authorization_endpoint,
+            "token_endpoint": token_endpoint,
+        }
+        return self._metadata
+
+    async def authorize_redirect_url(self, request: Request) -> str:
+        """Démarre le flux : construit l'URL de redirection vers l'IdP."""
+        metadata = await self._get_metadata()
+        state = secrets.token_urlsafe(24)
+        nonce = secrets.token_urlsafe(24)
+        code_verifier = secrets.token_urlsafe(64)
+        code_challenge = _pkce_s256_challenge(code_verifier)
+        request.session[_SESSION_STATE_KEY] = state
+        request.session[_SESSION_NONCE_KEY] = nonce
+        request.session[_SESSION_PKCE_VERIFIER_KEY] = code_verifier
+        query = urlencode(
+            {
+                "client_id": self._settings.OIDC_CLIENT_ID,
+                "response_type": "code",
+                "scope": "openid email profile",
+                "redirect_uri": self.redirect_uri,
+                "state": state,
+                "nonce": nonce,
+                "code_challenge": code_challenge,
+                "code_challenge_method": "S256",
+            }
+        )
+        return f"{metadata['authorization_endpoint']}?{query}"
+
+    async def _exchange_code(self, code: str, code_verifier: str) -> str | None:
+        metadata = await self._get_metadata()
+        payload = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": self.redirect_uri,
+            "client_id": self._settings.OIDC_CLIENT_ID,
+            "code_verifier": code_verifier,
+        }
+        if self._settings.OIDC_CLIENT_SECRET:
+            payload["client_secret"] = self._settings.OIDC_CLIENT_SECRET
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                metadata["token_endpoint"],
+                data=payload,
+                headers={"Accept": "application/json"},
+            )
+        if response.status_code >= 400:
+            logger.warning("SSO : endpoint token en erreur (%s)", response.status_code)
+            return None
+        id_token = str(response.json().get("id_token") or "")
+        return id_token or None
 
     async def fetch_verified_email(self, request: Request) -> str | None:
-        """Termine le flux (callback) : échange le code, retourne l'email
-        vérifié — ou None (motif journalisé sobrement, jamais détaillé à
-        l'utilisateur)."""
-        try:
-            token = await self._oauth.fdr.authorize_access_token(request)
-        except OAuthError as exc:
-            logger.warning("SSO : échec d'échange du code (%s)", exc.error)
+        """Termine le flux callback et retourne un email vérifié ou None."""
+        state = str(request.query_params.get("state") or "")
+        expected_state = str(request.session.pop(_SESSION_STATE_KEY, "") or "")
+        if not state or not expected_state or not secrets.compare_digest(state, expected_state):
+            logger.warning("SSO : state invalide")
             return None
-        userinfo = token.get("userinfo")
-        if not userinfo:
-            try:
-                userinfo = await self._oauth.fdr.userinfo(token=token)
-            except OAuthError as exc:
-                logger.warning("SSO : userinfo inaccessible (%s)", exc.error)
-                return None
-        email = str(userinfo.get("email") or "").strip().lower()
+        code = str(request.query_params.get("code") or "")
+        if not code:
+            logger.warning("SSO : callback sans code")
+            return None
+        code_verifier = str(
+            request.session.pop(_SESSION_PKCE_VERIFIER_KEY, "") or ""
+        )
+        if not code_verifier:
+            logger.warning("SSO : code_verifier PKCE absent")
+            return None
+        try:
+            id_token = await self._exchange_code(code, code_verifier)
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.warning("SSO : échec de l'échange du code (%s)", type(exc).__name__)
+            return None
+        if not id_token:
+            logger.warning("SSO : id_token absent")
+            return None
+        if self._authenticate is None:
+            logger.warning("SSO : service non initialisé")
+            return None
+        try:
+            token: IDToken = self._authenticate(f"Bearer {id_token}")
+        except Exception:
+            logger.warning("SSO : id_token invalide")
+            return None
+        expected_nonce = str(request.session.pop(_SESSION_NONCE_KEY, "") or "")
+        token_nonce = str(getattr(token, "nonce", "") or "")
+        if (
+            expected_nonce
+            and token_nonce
+            and not secrets.compare_digest(expected_nonce, token_nonce)
+        ):
+            logger.warning("SSO : nonce invalide")
+            return None
+        email = str(getattr(token, "email", "") or "").strip().lower()
         if not email:
             logger.warning("SSO : aucun email dans le jeton de l'IdP")
             return None
-        # email_verified peut être absent selon l'IdP : on ne refuse que le
-        # faux explicite
-        if userinfo.get("email_verified") is False:
+        # email_verified peut être absent selon l'IdP : on ne refuse que le faux explicite
+        if getattr(token, "email_verified", None) is False:
             logger.warning("SSO : email non vérifié par l'IdP — refusé")
             return None
         return email

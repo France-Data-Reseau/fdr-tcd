@@ -115,13 +115,14 @@ Suffisant pour des données semi-publiques + rôles validés par admin.
 
 ### Temps 2 — SSO OIDC ✅ IMPLÉMENTÉ (en attente des identifiants IdP)
 
-- `services/oidc_service.py` (authlib) + routes `/auth/sso` et `/auth/callback`
+- `services/oidc_service.py` (fastapi-oidc) + routes `/auth/sso` et `/auth/callback`
   + bouton « Se connecter avec France Data Réseau » sur la page de login.
 - **Activation par simple configuration** : le SSO est inerte tant que
   `OIDC_ISSUER` / `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` sont vides dans le
   `.env` ; les renseigner fait apparaître le bouton — zéro changement de code.
-- Redirect URI bâtie sur `APP_PUBLIC_URL` uniquement ; state/nonce gérés par
-  authlib via la session signée ; emails explicitement non vérifiés refusés.
+- Redirect URI bâtie sur `APP_PUBLIC_URL` uniquement ; state/nonce gérés en
+  session signée ; id_token validé avec fastapi-oidc ; emails explicitement non
+  vérifiés refusés.
 - Email vérifié par l'IdP → même pipeline que le magic link (mapping
   `BDD_Utilisateurs`) ; email sans compte → demande d'accès pré-remplie.
 - Le magic link reste actif en repli (utilisateurs sans compte FDR).

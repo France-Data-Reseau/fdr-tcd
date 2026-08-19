@@ -12,7 +12,7 @@ endif
 
 COMPOSE := docker compose $(COMPOSE_FILES)
 
-.PHONY: help up down build restart logs ps shell-web
+.PHONY: help up down build restart logs ps shell-app sso-check
 
 help:
 	@echo "Usage: make [target] [ENV=prod|dev]"
@@ -24,7 +24,8 @@ help:
 	@echo "  restart        Redémarrer les services"
 	@echo "  logs           Afficher les logs en temps réel"
 	@echo "  ps             Lister les conteneurs en cours"
-	@echo "  shell-web      Ouvrir un shell dans le conteneur web"
+	@echo "  shell-app      Ouvrir un shell dans le conteneur app"
+	@echo "  sso-check      Vérifier le flux de redirection SSO local (Keycloak)"
 up:
 	@echo $(MSG)
 	$(COMPOSE) up -d
@@ -46,3 +47,6 @@ ps:
 
 shell-app:
 	$(COMPOSE) exec app bash
+
+sso-check:
+	uv run python -m scripts.check_sso_keycloak

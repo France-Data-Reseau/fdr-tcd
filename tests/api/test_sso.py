@@ -1,7 +1,6 @@
 """SSO OIDC : désactivé par défaut, flux callback (service stubé, zéro réseau)."""
 
 import pytest
-from fastapi.responses import RedirectResponse
 
 from tests.conftest import connecter  # noqa: F401  (cohérence des fixtures)
 
@@ -13,8 +12,8 @@ class OidcStub:
         self.enabled = enabled
         self._email = email
 
-    async def authorize_redirect(self, request):
-        return RedirectResponse(url="https://idp.exemple.test/authorize?state=x")
+    async def authorize_redirect_url(self, request):
+        return "https://idp.exemple.test/authorize?state=x"
 
     async def fetch_verified_email(self, request):
         return self._email
@@ -49,8 +48,27 @@ def test_bouton_visible_quand_sso_actif(client, sso):
 def test_sso_redirige_vers_l_idp(client, sso):
     sso()
     reponse = client.get("/auth/sso", follow_redirects=False)
-    assert reponse.status_code == 307
+    assert reponse.status_code == 303
     assert reponse.headers["location"].startswith("https://idp.exemple.test/")
+
+
+def test_sso_indisponible_retour_login(client, sso):
+    class BrokenOidcStub(OidcStub):
+        async def authorize_redirect_url(self, request):
+            raise ValueError("metadata OIDC incomplètes")
+
+    stub = BrokenOidcStub(email=None, enabled=True)
+    from app.api import auth as auth_routes
+
+    original = auth_routes.get_oidc_service
+    try:
+        auth_routes.get_oidc_service = lambda: stub
+        reponse = client.get("/auth/sso", follow_redirects=False)
+    finally:
+        auth_routes.get_oidc_service = original
+
+    assert reponse.status_code == 303
+    assert reponse.headers["location"] == "/login"
 
 
 def test_callback_compte_connu_ouvre_la_session(client, sso):
@@ -114,3 +132,17 @@ def test_service_reel_redirect_uri_sur_app_public_url():
     service = OidcService(settings)
     assert service.enabled is True
     assert service.redirect_uri == "https://fdr2.revorun.eu/auth/callback"
+
+
+def test_service_reel_actif_sans_secret_client_public():
+    from app.core.config import Settings
+    from app.services.oidc_service import OidcService
+
+    settings = Settings(
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+        GRIST_API_KEY="x", GRIST_DOC_ID="y",
+        GRIST_SERVER_URL="https://grist.exemple.test",
+        OIDC_ISSUER="https://idp.francedatareseau.fr",
+        OIDC_CLIENT_ID="fdr2", OIDC_CLIENT_SECRET="",
+    )
+    assert OidcService(settings).enabled is True

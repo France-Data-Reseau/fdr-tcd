@@ -28,16 +28,7 @@ def test_api_sans_session_401(client):
 
 
 def test_api_en_attente_401(client):
-    from app import dependencies
-    from tests.conftest import extraire_csrf
-
-    lien = dependencies.get_magic_link_service().generate_url("attente@exemple.fr")
-    token = lien.split("token=", 1)[1]
-    page = client.get(f"/auth/verifier?token={token}")
-    client.post(
-        "/auth/verifier",
-        data={"token": token, "csrf_token": extraire_csrf(page.text)},
-    )
+    connecter(client, "attente@exemple.fr")
     assert client.get("/api/restitution/donnees").status_code == 401
 
 

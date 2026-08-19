@@ -8,8 +8,8 @@
       "protocol": "openid-connect",
       "enabled": true,
       "publicClient": true,
-      "redirectUris": ["http://keycloak.localhost:8000/", "http://keycloak.localhost:8000/*"],
-      "webOrigins": ["http://keycloak.localhost:8000"],
+      "redirectUris": ["http://localhost:8000/", "http://localhost:8000/*", "http://localhost:8001/", "http://localhost:8001/*"],
+      "webOrigins": ["http://localhost:8000", "http://localhost:8001"],
       "implicitFlowEnabled": false,
       "standardFlowEnabled": true,
       "attributes": {

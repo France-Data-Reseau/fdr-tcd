@@ -66,7 +66,6 @@ from app.services.admin_service import AdminService
 from app.services.auth_service import AuthService
 from app.services.collectivite_service import CollectiviteService
 from app.services.geocode_client import GeocodeClient
-from app.services.magic_link_service import EmailRateLimiter, MagicLinkService
 from app.services.notification_service import NotificationService
 from app.services.oidc_service import OidcService
 from app.services.projet_service import ProjetService
@@ -114,23 +113,10 @@ def get_notification_service() -> NotificationService:
 
 
 @lru_cache
-def get_magic_link_service() -> MagicLinkService:
-    # Singleton : porte le magasin des jetons consommés et le boot-id
-    return MagicLinkService(get_settings())
-
-
-@lru_cache
-def get_email_rate_limiter() -> EmailRateLimiter:
-    return EmailRateLimiter()
-
-
-@lru_cache
 def get_auth_service() -> AuthService:
     return AuthService(
         get_utilisateur_repository(),
         get_notification_service(),
-        get_magic_link_service(),
-        get_email_rate_limiter(),
     )
 
 
@@ -227,8 +213,6 @@ def reset_singletons() -> None:
         get_collectivite_repository,
         get_reference_repository,
         get_notification_service,
-        get_magic_link_service,
-        get_email_rate_limiter,
         get_auth_service,
         get_admin_service,
         get_projet_repository,

@@ -19,43 +19,6 @@ from app.repositories.types import (
     DROIT_VISITEUR,
     DROITS,
 )
-from app.services.password_service import password_errors
-
-# Longueur max d'un mot de passe acceptée en entrée (garde-fou DoS : argon2 sur
-# une chaîne géante coûterait cher ; bien au-delà de tout usage légitime).
-_PASSWORD_MAX = 200
-
-
-def _valider_force(password: str) -> str:
-    erreurs = password_errors(password)
-    if erreurs:
-        raise ValueError("le mot de passe doit comporter " + ", ".join(erreurs))
-    return password
-
-
-class LoginForm(BaseModel):
-    """Login par magic link (email seul) — chemin secondaire si SMTP actif."""
-
-    email: EmailStr
-
-
-class PasswordLoginForm(BaseModel):
-    """Login par mot de passe (chemin principal en l'absence de SMTP)."""
-
-    email: EmailStr
-    password: str = Field(min_length=1, max_length=_PASSWORD_MAX)
-
-
-class ChangePasswordForm(BaseModel):
-    """Changement de mot de passe par un utilisateur connecté."""
-
-    actuel: str = Field(min_length=1, max_length=_PASSWORD_MAX)
-    nouveau: str = Field(max_length=_PASSWORD_MAX)
-
-    @field_validator("nouveau")
-    @classmethod
-    def _fort(cls, valeur: str) -> str:
-        return _valider_force(valeur)
 
 
 class InscriptionForm(BaseModel):
@@ -66,19 +29,11 @@ class InscriptionForm(BaseModel):
     collectivite_id: int = Field(default=0, ge=0)
     # Nom de la collectivité résolu par la route (pour l'email de notification)
     collectivite_nom: str = Field(default="", max_length=200)
-    # Mot de passe défini à l'inscription (mode mot de passe)
-    password: str = Field(max_length=_PASSWORD_MAX)
 
     @field_validator("prenom", "nom", "organisation", mode="before")
     @classmethod
     def _nettoyer(cls, valeur: object) -> object:
         return valeur.strip() if isinstance(valeur, str) else valeur
-
-    @field_validator("password")
-    @classmethod
-    def _fort(cls, valeur: str) -> str:
-        return _valider_force(valeur)
-
 
 def _url_http_ou_vide(valeur: str) -> str:
     """Champ URL optionnel : vide, ou http(s) exclusivement (anti

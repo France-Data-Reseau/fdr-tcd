@@ -256,14 +256,23 @@ def extraire_csrf(html: str) -> str:
 
 
 def connecter(client: TestClient, email: str) -> None:
-    """Ouvre une session via le flux magic link complet (GET puis POST)."""
-    lien = dependencies.get_magic_link_service().generate_url(email)
-    token = lien.split("token=", 1)[1]
-    page = client.get(f"/auth/verifier?token={token}")
-    assert page.status_code == 200, "page de confirmation attendue"
-    reponse = client.post(
-        "/auth/verifier",
-        data={"token": token, "csrf_token": extraire_csrf(page.text)},
-        follow_redirects=False,
-    )
+    """Ouvre une session en simulant un callback OIDC vérifié."""
+
+    class _OidcStub:
+        enabled = True
+
+        async def fetch_verified_email(self, request):
+            return email
+
+        async def authorize_redirect_url(self, request):
+            return "https://idp.exemple.test/authorize"
+
+    import app.api.auth as auth_routes
+
+    original = auth_routes.get_oidc_service
+    try:
+        auth_routes.get_oidc_service = lambda: _OidcStub()
+        reponse = client.get("/auth/callback", follow_redirects=False)
+    finally:
+        auth_routes.get_oidc_service = original
     assert reponse.status_code == 303
