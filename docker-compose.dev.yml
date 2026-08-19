@@ -4,7 +4,7 @@
 services:
   app:
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./app:/app/app:ro
       - ./templates:/app/templates:ro

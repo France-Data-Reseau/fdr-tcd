@@ -14,7 +14,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
     # Mono-worker: cache memory, magic link tokens, rate limiting all require single process
     # No --workers flag intentionally (see README.md and MAINTENANCE.md)
 

@@ -1,0 +1,13 @@
+services:
+  app:
+    environment:
+      - VIRTUAL_HOST
+      - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=${VIRTUAL_HOST}
+    networks:
+      - lb_web
+
+
+networks:
+  lb_web:
+    external: true
