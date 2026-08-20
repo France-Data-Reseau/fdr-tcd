@@ -44,10 +44,6 @@ SCHEMA_ATTENDU: dict[str, set[str]] = {
     "BDD_Utilisateurs": {
         "nom", "prenom", "email", "organisation", "droits", "collectivite",
         "date_inscription",
-        # Hash argon2id requis par l'auth mot de passe — créé par
-        # scripts/ajouter_colonne_password.py AVANT le déploiement du code.
-        # Sa disparition est signalée (CRITICAL) au démarrage.
-        "password_hash",
     },
 }
 

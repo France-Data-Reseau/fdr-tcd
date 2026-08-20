@@ -1,7 +1,7 @@
 """Configuration de l'application — tout vient du .env, zéro valeur en dur.
 
 En production, l'application REFUSE de démarrer sans SECRET_KEY explicite ni
-SMTP complet (le magic link est le seul moyen de connexion : SMTP = vital).
+SMTP complet pour l'envoi des notifications administrateur.
 """
 
 import logging
@@ -31,11 +31,10 @@ class Settings(BaseSettings):
     GRIST_RETRIES: int = 2
     CACHE_TTL_SECONDS: int = 300
 
-    # Sessions / magic link
+    # Sessions
     SESSION_MAX_AGE_SECONDS: int = 3600
-    MAGIC_LINK_TTL_SECONDS: int = 900
 
-    # SMTP (vital en production : envoi des magic links + notifications admin)
+    # SMTP (notifications administrateur)
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
@@ -44,8 +43,7 @@ class Settings(BaseSettings):
     ADMIN_NOTIFY_EMAILS: str = ""
 
     # SSO OIDC (IdP de France Data Réseau — celui derrière l'instance Grist).
-    # Désactivé tant que les trois variables ne sont pas renseignées ;
-    # le magic link reste disponible en repli dans tous les cas.
+    # OIDC_CLIENT_SECRET est optionnel pour un client public avec PKCE.
     OIDC_ISSUER: str = ""
     OIDC_CLIENT_ID: str = ""
     OIDC_CLIENT_SECRET: str = ""

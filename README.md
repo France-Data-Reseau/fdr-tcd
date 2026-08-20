@@ -92,9 +92,9 @@ tests/                 # unit/ + api/ (sécurité : IDOR, CSRF, accès)
 
 ## Limites assumées (lire avant de « moderniser »)
 
-- **Mono-worker** : cache mémoire, jetons magic link et rate limiting
-  supposent un seul process uvicorn. Passer à N workers exige un magasin
-  partagé (Redis) pour ces trois mécanismes.
+- **Mono-worker** : cache mémoire et rate limiting supposent un seul process
+  uvicorn. Passer à N workers exige un magasin partagé (Redis) pour ces
+  mécanismes.
 - **Grist sans transactions** : les écritures multi-tables ne sont pas
   atomiques (ordre d'écriture pensé pour minimiser les états incohérents).
 - `BDD_Contacts.projet_s_` est un champ texte (nom du projet) — dette v1

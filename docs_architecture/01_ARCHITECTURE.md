@@ -18,7 +18,7 @@ Schemas Pydantic (validation formulaires, services/types.py) | Core (config, sé
   — exception : la restitution est `async def` (elle
   parallélise les lectures via `asyncio.to_thread` + `gather`).
 - **Services** (`app/services/`) : règles métier — agrégation restitution, liaisons RefList,
-  workflow de validation des comptes, géo-résolution, magic links.
+   workflow de validation des comptes, géo-résolution, OIDC.
 - **Repositories** (`app/repositories/`) : un par table `BDD_*`, pattern repository classique —
   `Protocol` + implémentation `Grist*Repository(GristApi)`, retours `(status, data)` vérifiés,
   TypedDicts dans `types.py`. Seule couche qui connaît les noms de colonnes Grist.
@@ -40,9 +40,9 @@ futures) :
    échouer à mi-chemin. Les services écrivent dans un ordre qui minimise les états
    incohérents (sous-objets/liaisons d'abord ou parent d'abord selon le sens des références)
    et journalisent l'état atteint en cas d'échec partiel.
-4. **Mono-worker = invariant** (D6) : cache mémoire, magasin des jetons magic link consommés
-   et compteurs slowapi reposent sur « 1 process ». `CMD` uvicorn sans `--workers` ; passer
-   à N workers imposerait un magasin partagé (Redis) pour ces trois mécanismes.
+4. **Mono-worker = invariant** (D6) : cache mémoire et compteurs slowapi reposent sur
+   « 1 process ». `CMD` uvicorn sans `--workers` ; passer à N workers imposerait un magasin
+   partagé (Redis) pour ces mécanismes.
 5. `require_ownership` s'applique aux routes paramétrées de complétion **en lecture (GET)
    comme en écriture (POST)** pour les Éditeurs (B2) ; hors périmètre → **404**.
 
@@ -57,7 +57,7 @@ futures) :
 | Cache | TTL mémoire 5 min, 2 niveaux : (a) tables de référence + choix `widgetOptions` ; (b) payload restitution dérivé. **Invalidation ciblée par table** après écriture | La v1 rechargeait TOUT le cache après chaque POST. 1 worker uvicorn → pas besoin de Redis. |
 | Performance | Routes sync en threadpool ; restitution : lectures enveloppées dans `asyncio.to_thread` + `gather` (8 tables en parallèle) ; index `id → record` en mémoire ; coordonnées lues depuis Grist | Pas de N+1 ; échelle réelle : ~260 collectivités, 154 projets. **Risque accepté** (revue Gemini) : sous forte charge, le threadpool peut saturer (GIL + désérialisation JSON) ; surveiller les temps de réponse de `/restitution` — l'issue de secours est un client httpx async derrière les mêmes Protocols, sans toucher aux services. |
 | Anti-IDOR | Dépendance centralisée `require_ownership` sur TOUTE route paramétrée de complétion — **lectures GET comprises** (B2) ; hors périmètre → 404 | Faiblesse v1 n°3 : contrôle au cas par cas → généralisé. Les pages de complétion affichent les contacts (emails/téléphones) : sans contrôle des GET, l'énumération d'IDs reconstituerait l'annuaire. |
-| Rate limiting | slowapi : login, inscription, demande d'élévation, envoi de magic link (par IP + par email), API restitution (modéré). Uvicorn `--proxy-headers --forwarded-allow-ips` + key function sur l'IP transmise (S3 — sinon limites globales derrière Caddy) | Faiblesse v1 n°1. |
+| Rate limiting | slowapi : inscription, demande d'élévation, API restitution (modéré). Uvicorn `--proxy-headers --forwarded-allow-ips` + key function sur l'IP transmise (S3 — sinon limites globales derrière Caddy) | Faiblesse v1 n°1. |
 | Lint/typage | ruff + pyright + pre-commit | Critère d'acceptation. |
 | Docker | python:3.11-slim, non-root, `HEALTHCHECK` sans I/O externe (sonde `python -c`, slim n'a pas curl), `ARG GIT_SHA` exposé par `/health`, CMD mono-worker + `--proxy-headers`. **Livraison par image** (`docker save`/`load`) — build local, jamais sur le VPS | Corrige B1 (plan wheels incohérent) ; le piège PyPI/IPv6 disparaît du chemin critique ; ce qui tourne = ce qui a été testé. |
 | Géocodage | Logique `geo_resolver` v1 conservée à l'identique ; départements injectés depuis `BDD_Departements` (le module `data_lists` v1 codé en dur disparaît) ; httpx async + sémaphore, timeout 10 s | Coordonnées stockées dans Grist en priorité ; on ne géocode que les nouveaux cas ; échec géocodage ≠ échec de page. |
@@ -115,8 +115,7 @@ app_fdr_v2/
 │   │   └── templating.py        — env Jinja2 (autoescape) + globals v1 (grist_field, ref_ids_of, csrf)
 │   ├── api/
 │   │   ├── __init__.py
-│   │   ├── auth.py              — /login (envoi magic link), /auth/verifier (GET = page de
-│   │   │                          confirmation sans effet de bord, POST = consommation + session),
+│   │   ├── auth.py              — /login, /auth/sso, /auth/callback,
 │   │   │                          /inscription, /acces-refuse, /logout, /demande-modification
 │   │   ├── menu.py              — / (tuiles par rôle, pastille « En attente ») + /health
 │   │   ├── admin.py             — /admin (console) + POST /admin/utilisateur/{id}
@@ -146,15 +145,14 @@ app_fdr_v2/
 │   │   └── contact_repository.py       — contacts (projet_s_ = Text → nom du projet, comportement v1)
 │   └── services/
 │       ├── __init__.py
-│       ├── types.py             — modèles Pydantic des formulaires (Login, Inscription, Collectivite,
+│       ├── types.py             — modèles Pydantic des formulaires (Inscription, Collectivite,
 │       │                          Projet, CasUsage, Partenaire, Programme, Document, Contact, AdminUpdate),
 │       │                          HttpUrl sur tous les champs URL (anti `javascript:`), constante DROITS
 │       │                          (5 valeurs françaises ; « Extention » commentée : valeur de données)
 │       ├── auth_service.py      — mapping email→rôle (BDD_Utilisateurs), workflow En attente/élévation,
-│       │                          réponses neutres anti-énumération ; conçu pour brancher l'OIDC ensuite
-│       ├── magic_link_service.py — tokens signés itsdangerous (salt dédié) : TTL 15 min, usage unique
-│       │                          réel (magasin mémoire des jetons consommés + boot-id : un redémarrage
-│       │                          invalide les jetons antérieurs), URL bâtie sur APP_PUBLIC_URL uniquement
+│       │                          réponses neutres anti-énumération
+│       ├── oidc_service.py      — flux OIDC Authorization Code + PKCE (S256), validation id_token,
+│       │                          vérification email_verified, callback robuste
 │       ├── admin_service.py     — tri utilisateurs, validation/refus, garde-fou anti-auto-rétrogradation
 │       ├── collectivite_service.py — règles création/édition (formules dep→num_dep/reg jamais écrites)
 │       ├── projet_service.py    — création/édition projet + agrégation des sous-formulaires
@@ -162,12 +160,11 @@ app_fdr_v2/
 │       │                          payload JSON identique v1, cache TTL 5 min invalidé sur écriture
 │       ├── geo_service.py       — port de geo_resolver v1 (mêmes règles), départements injectés depuis Grist
 │       ├── geocode_client.py    — api-adresse.data.gouv.fr : timeout 10 s, validation départementale, cache
-│       └── notification_service.py — SMTP : magic links + notification admin (dormant si non configuré)
+│       └── notification_service.py — SMTP : notifications admin (dormant si non configuré)
 │
 ├── templates/                   — les 15 templates v1 repris de reference_ui/ (base, login, inscription,
 │                                  acces_refuse, menu, admin, accueil, collectivite, projet_form, cas_usage,
 │                                  partenaire, programme, document, contact, restitution) — UX inchangée —
-│                                  + confirmation_lien.html (page de confirmation magic link, style v1)
 │                                  + mentions_legales.html (RGPD — contenu à fournir par Victor)
 ├── static/
 │   ├── style.css                — CSS v1 inchangé
@@ -186,7 +183,7 @@ app_fdr_v2/
 │
 └── tests/                       — voir 04_TESTS.md
     ├── conftest.py              — fixtures + cache_clear() des fabriques @lru_cache (isolation)
-    ├── unit/   (7 fichiers : repositories, cache, auth, magic link, geo, restitution, formulaires)
+   ├── unit/   (fichiers : repositories, cache, auth, geo, restitution, oidc)
     └── api/    (9 fichiers : auth, accès, IDOR (GET+POST), CSRF, headers, rate limit, admin,
                  CRUD, API restitution)
 ```

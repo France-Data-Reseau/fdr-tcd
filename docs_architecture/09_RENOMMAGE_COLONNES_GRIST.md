@@ -168,7 +168,6 @@ Présentes dans chaque table, gérées par Grist (hors mapping ci-dessous) :
 | Droits | C | droits | casse |
 | Collectivite | Ref:Collectivites | collectivite | casse |
 | Date_inscription | T | date_inscription | casse |
-| password_hash | T | password_hash | inchangé (déjà propre) |
 
 ## Dépendances de formules (cross-table) — CRITIQUE
 

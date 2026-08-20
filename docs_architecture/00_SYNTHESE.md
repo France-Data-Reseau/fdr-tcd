@@ -10,7 +10,7 @@
 | Fichier | Contenu |
 |---|---|
 | `01_ARCHITECTURE.md` | Couches, règles d'étanchéité, choix techniques justifiés, **liste exhaustive des fichiers** |
-| `02_AUTHENTIFICATION.md` | Magic link (design durci) → OIDC, précision sur le « SSO Grist » |
+| `02_AUTHENTIFICATION.md` | SSO OIDC (client public PKCE), mapping des rôles et sessions |
 | `03_SECURITE.md` | Plan anti-exfiltration (lectures comprises), checklist 17 points, droits, RGPD |
 | `04_TESTS.md` | Stratégie de tests, dont sécurité (IDOR GET+POST, rate limit, jetons) |
 | `05_DEPLOIEMENT.md` | Livraison par image Docker, protection de la v1 (ressources, logs) |
@@ -21,9 +21,9 @@
 |---|---|
 | **B1** — chaîne de livraison `wheels/` incohérente (build VPS impossible) | **Livraison par image** : build + tests en local, `docker save` → `scp` → `docker load`, compose en `image:`. Le VPS ne contacte plus jamais PyPI (`05`) |
 | **B2** — anti-IDOR limité aux écritures → annuaire des contacts siphonnable par GET | `require_ownership` étendu aux **GET paramétrés de complétion** ; hors périmètre → **404** ; cas GET ajoutés aux tests (`01`, `03`, `04`) |
-| **S1/S2** — usage unique des magic links illusoire ; consommation au GET | Magasin mémoire des jetons consommés + **boot-id** (redémarrage = jetons antérieurs refusés) ; page de confirmation, **consommation par POST** ; URL bâtie sur `APP_PUBLIC_URL` seulement ; session régénérée (`02`) |
+| **S1/S2** — flux d'auth fragile | Auth unifiée sur OIDC Authorization Code + PKCE (`S256`) ; `state`/`nonce`/`code_verifier` en session ; URL de callback bâtie sur `APP_PUBLIC_URL` (`02`) |
 | **S3** — rate limiting aveugle derrière Caddy | uvicorn `--proxy-headers --forwarded-allow-ips` + key function sur l'IP transmise, testé avec `X-Forwarded-For` (`01`, `03`, `04`) |
-| **S4** — SMTP vital traité comme optionnel | `SMTP_*` vérifiées au démarrage en prod (comme `SECRET_KEY`) ; échec d'envoi = message neutre, pas de 500 ; recommandation relais transactionnel SPF/DKIM (`02`) |
+| **S4** — erreurs d'auth non maîtrisées | Démarrage SSO robuste : indisponibilité IdP/metadata => retour login avec message sobre, sans 500 (`02`) |
 | **S5–S8** — sessions, headers, CSP, URLs | Session = identité seule (rôle re-résolu à chaque requête, effet admin ≤ 5 min) ; un émetteur par header (CSP=app, HSTS=Caddy) ; CSP fondée sur l'inventaire réel (5 scripts inline externalisés, tuiles OSM) ; `HttpUrl` partout (`03`) |
 | **D1–D6** — sauvegarde, clé API, healthcheck, ressources, réseau, mono-worker | `scripts/export_grist.py` avant go-live et tout one-shot ; question compte de service posée ; `/health` sans I/O externe ; `mem_limit`/`cpus`/rotation des logs (protège la v1) ; `networks:` à aligner sur le compose réel ; mono-worker = invariant écrit (`01`, `03`, `05`) |
 | **R1–R6, N1–N6** | SHA dans `/health`, garde-fou « verify avant build », tests complémentaires, RGPD (mentions légales, rétention En attente), dette « contacts liés par nom » actée ci-dessous, « Extention » protégée par commentaire, pool_maxsize, reload Caddy explicite, salts distincts, `Cache-Control: private` |
@@ -34,10 +34,10 @@
 2. **pygrister** (0.9.x) pour l'accès Grist ; risque threadpool sous forte charge accepté et
    documenté, issue de secours httpx derrière les mêmes Protocols.
 3. **Grist = unique source de données** (12 tables `BDD_*`), schéma jamais modifié sans accord.
-4. **Auth : magic link maintenant, SSO OIDC ensuite** (IdP derrière grist.francedatareseau.fr).
+4. **Auth : SSO OIDC uniquement** (IdP derrière grist.francedatareseau.fr).
 5. **Droits exclusivement en français** ; valeurs anglaises normalisées à la lecture.
 6. **UX/UI strictement identique à la v1** ; assainissements invisibles : JS externalisé
-   (CSP), Leaflet auto-hébergé, page de confirmation du magic link au style v1.
+   (CSP), Leaflet auto-hébergé.
 
 ## Dettes et limites assumées (énoncées, pas masquées)
 
@@ -61,8 +61,8 @@
 ## Points ouverts pour Victor
 
 1. **Go / no-go** sur cette architecture (déclenche l'étape 1 : socle projet + repositories + tests).
-2. **Expéditeur des magic links** : Gmail (dev seulement) vs sous-domaine dédié de
-   `revorun.eu` + relais transactionnel SPF/DKIM (recommandé pour la prod) — qui configure ?
+2. **Dépendance OIDC externe** : stratégie de secours en cas d'indisponibilité IdP
+   (maintenance IdP, coupure réseau) — quel runbook ?
 3. **Sauvegarde Grist** : qui déclenche l'export avant le go-live, où le stocker (hors VPS) ?
 4. **Clé API Grist** : celle de la v1 est-elle un compte de service dédié limité à ce
    document ? Sinon, peut-on en créer un ?

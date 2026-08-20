@@ -9,7 +9,6 @@ from typing import Protocol, cast
 
 from app.repositories.base import BaseGristRepository
 from app.repositories.types import (
-    COL_PASSWORD_HASH,
     DROIT_EN_ATTENTE,
     DROITS_EN_VERS_FR,
     TABLE_UTILISATEURS,
@@ -27,8 +26,6 @@ class UtilisateurRepositoryProtocol(Protocol):
     def create_pending(self, fields: dict) -> int: ...
 
     def update(self, record_id: int, fields: dict) -> None: ...
-
-    def set_password_hash(self, record_id: int, password_hash: str) -> None: ...
 
 
 class GristUtilisateurRepository(BaseGristRepository[UtilisateurRecord]):
@@ -56,10 +53,6 @@ class GristUtilisateurRepository(BaseGristRepository[UtilisateurRecord]):
         fields = dict(fields)
         fields["droits"] = DROIT_EN_ATTENTE
         return self.create(fields)
-
-    def set_password_hash(self, record_id: int, password_hash: str) -> None:
-        """Écrit le hash de mot de passe (argon2id). N'écrit que cette colonne."""
-        self.update(record_id, {COL_PASSWORD_HASH: password_hash})
 
     @staticmethod
     def _normalise(record: UtilisateurRecord) -> UtilisateurRecord:

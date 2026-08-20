@@ -49,12 +49,6 @@ DROITS_EN_VERS_FR = {
     "Pending": DROIT_EN_ATTENTE,
 }
 
-# Colonne ajoutée à BDD_Utilisateurs (via l'API) pour l'auth par mot de passe.
-# Contient un hash argon2id, jamais le mot de passe en clair. Optionnelle : un
-# compte sans hash ne peut pas se connecter par mot de passe (magic link / SSO).
-COL_PASSWORD_HASH = "password_hash"
-
-
 class UtilisateurRecord(TypedDict):
     id: int
     nom: str
@@ -64,7 +58,6 @@ class UtilisateurRecord(TypedDict):
     droits: str
     collectivite: NotRequired[int]  # Ref:BDD_Collectivites (0 = aucune)
     date_inscription: NotRequired[str]
-    password_hash: NotRequired[str]  # hash argon2id — jamais exposé
 
 
 class CollectiviteRecord(TypedDict):

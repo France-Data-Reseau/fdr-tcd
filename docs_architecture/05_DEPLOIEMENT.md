@@ -48,8 +48,9 @@ Conforme à `KIT_REBUILD_V2/VPS_DEPLOY.md`. Règles absolues : ne jamais toucher
      à terme : compte de service dédié, voir `03` §4) ;
    - **NOUVELLE** `SECRET_KEY` générée pour la V2 ;
    - `ENVIRONMENT=production` ;
-   - variables magic link (**vitales** — vérifiées au démarrage) : `SMTP_HOST/PORT/USER/
-     PASSWORD/FROM`, `APP_PUBLIC_URL=https://fdr2.revorun.eu` ;
+   - `APP_PUBLIC_URL=https://fdr2.revorun.eu` ;
+   - variables SMTP pour notifications admin si utilisées : `SMTP_HOST/PORT/USER/
+     PASSWORD/FROM` ;
    - (plus tard) variables OIDC : `OIDC_ISSUER`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`.
 
 5. **Intégration au stack — ajouts uniquement, aucune ligne existante modifiée.**
@@ -99,7 +100,7 @@ Conforme à `KIT_REBUILD_V2/VPS_DEPLOY.md`. Règles absolues : ne jamais toucher
    curl -s https://fdr2.revorun.eu/health   # 200 + SHA attendu → LA BONNE version répond (R1)
    curl -I https://fdr.revorun.eu           # la v1 doit TOUJOURS répondre
    ```
-   - test de bout en bout du magic link (email réellement reçu — checklist `03` n°13).
+  - test de bout en bout du SSO (redirection IdP puis retour callback).
 
 8. **Rollback** : `docker compose stop fdr2` — la v1 n'est jamais dans le chemin. Pour
    revenir à une version antérieure : `git checkout <sha>` en local puis redéployer

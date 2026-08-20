@@ -28,7 +28,6 @@ from fastapi.testclient import TestClient  # noqa: E402
 from app import dependencies  # noqa: E402
 from app.core.security import limiter  # noqa: E402
 from app.repositories.cache import TableCache  # noqa: E402
-from app.services.password_service import hash_password  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -122,24 +121,15 @@ def cache():
 
 # --- Fixtures applicatives (routes) ---
 
-# Mot de passe de test + son hash argon2id (calculé une seule fois au chargement).
-# admin et editeur ont un hash ; visiteur et attente n'en ont pas (cas « compte
-# sans mot de passe »).
-MOT_DE_PASSE_TEST = "MotDePasseTest-2026"
-_HASH_TEST = hash_password(MOT_DE_PASSE_TEST)
-
 UTILISATEURS_TEST = [
     {"id": 1, "email": "admin@exemple.fr", "droits": "Administrateur",
-     "prenom": "Alice", "nom": "Admin", "organisation": "FNCCR", "collectivite": 0,
-     "password_hash": _HASH_TEST},
+    "prenom": "Alice", "nom": "Admin", "organisation": "FNCCR", "collectivite": 0},
     {"id": 2, "email": "editeur@exemple.fr", "droits": "Editeur",
-     "prenom": "Eric", "nom": "Editeur", "organisation": "", "collectivite": 5,
-     "password_hash": _HASH_TEST},
+    "prenom": "Eric", "nom": "Editeur", "organisation": "", "collectivite": 5},
     {"id": 3, "email": "visiteur@exemple.fr", "droits": "Visiteur",
      "prenom": "Vera", "nom": "Visiteuse", "organisation": "", "collectivite": 0},
     {"id": 4, "email": "attente@exemple.fr", "droits": "En attente",
-     "prenom": "Paul", "nom": "Pending", "organisation": "", "collectivite": 0,
-     "password_hash": _HASH_TEST},
+    "prenom": "Paul", "nom": "Pending", "organisation": "", "collectivite": 0},
 ]
 
 COLLECTIVITES_TEST = [

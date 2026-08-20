@@ -15,7 +15,7 @@ Ce document récapitule l'organisation du code source de l'application FNCCR Car
 Contient l'intégralité de la documentation technique et des décisions d'architecture :
 - **`00_SYNTHESE.md`** : Vue d'ensemble du projet.
 - **`01_ARCHITECTURE.md`** : Explication des couches (API > Service > Repository).
-- **`02_AUTHENTIFICATION.md`** : Modes d'auth (mot de passe, magic link, SSO) et sessions.
+- **`02_AUTHENTIFICATION.md`** : Authentification SSO OIDC et sessions.
 - **`03_SECURITE.md`** : Protections contre les vulnérabilités (IDOR, CSRF, Rate Limiting).
 - **`04_TESTS.md`** : Stratégie de tests.
 - **`05_DEPLOIEMENT.md`** : Déploiement sur le serveur.
@@ -34,7 +34,7 @@ L'application est découpée en 4 sous-dossiers principaux et 2 fichiers centrau
 
 ### 1. `app/api/` (Couche de Présentation / Routeurs)
 Contient les endpoints FastAPI. Leur rôle est d'intercepter les requêtes HTTP, de lire les formulaires/paramètres, d'appeler les *Services*, et de renvoyer une page HTML (Jinja) ou une redirection. **Aucune logique métier ne s'y trouve.**
-- **`auth.py`** : Routes de connexion (login, vérification du magic link, déconnexion).
+- **`auth.py`** : Routes d'authentification (login, démarrage SSO, callback, déconnexion).
 - **`projets.py`** : Création et modification des fiches projets.
 - **`collectivites.py`** : Affichage et édition du profil des collectivités.
 - **`sous_objets.py`** : Gestion des entités liées aux projets (cas d'usage, partenaires, etc.).
@@ -47,7 +47,7 @@ Contient les endpoints FastAPI. Leur rôle est d'intercepter les requêtes HTTP,
 Contient le "cerveau" de l'application. Les services manipulent des données propres envoyées par les routeurs, appliquent les règles métier, et orchestrent les écritures/lectures via les *Repositories*.
 - **`types.py`** : Modèles de données Pydantic (Formulaires validés) partagés entre l'API et les services.
 - **`projet_service.py`** : Logique de création de projet (liaison avec la collectivité, fallback en cas d'erreur).
-- **`auth_service.py`** & **`magic_link_service.py`** : Génération des jetons, envoi d'emails, limitation de cadence (rate limiting) par adresse email.
+- **`auth_service.py`** & **`oidc_service.py`** : Validation des comptes et orchestration du flux SSO OIDC (PKCE).
 - **`collectivite_service.py`** : Synthèse des données d'une collectivité.
 - **`restitution_service.py`** : Agrége et formate les données complexes pour les renvoyer à la carte V1.
 - **`geo_service.py`** & **`geocode_client.py`** : Gestion des appels d'API externes pour géocoder les adresses.

@@ -1,7 +1,7 @@
 # Stratégie de tests
 
 > Révisé suite aux revues du 2026-06-12 (`revues/`) : cas GET dans les tests IDOR (B2),
-> tests rate-limit/proxy (S3), SMTP en panne (S4), jetons magic link (S1), headers (R3).
+> tests rate-limit/proxy (S3), OIDC/PKCE, headers (R3).
 
 Objectif (BRIEF §3.1) : pas 100 % de couverture, mais **les chemins critiques** —
 services, repositories (Grist mocké), smoke tests des routes, et tests de sécurité.
@@ -28,8 +28,8 @@ services, repositories (Grist mocké), smoke tests des routes, et tests de sécu
 |---|---|
 | `test_repositories.py` | CRUD générique sur GristApi mocké : status vérifiés, batching PATCH homogène + repli unitaire (piège n°2), helpers `ref_ids`/`to_reflist`/extraction tolérante (pièges n°3 et 6), **invalidation du cache déclenchée par les méthodes d'écriture de `base.py`** (pas par les services) |
 | `test_cache.py` | TTL 5 min, invalidation ciblée par table après écriture |
-| `test_auth_service.py` | Mapping email→rôle, workflow En attente/élévation, neutralité des réponses (login ET inscription), normalisation droits anglais→français |
-| `test_magic_link_service.py` | Expiration (15 min), **usage unique : jeton rejoué → rejeté**, **jeton d'un boot précédent → rejeté**, jeton falsifié → rejeté, salt distinct des sessions |
+| `test_auth_service.py` | Mapping email→rôle, workflow En attente/élévation, neutralité des réponses (inscription), normalisation droits anglais→français |
+| `test_oidc_service.py` | Flux OIDC côté service : PKCE (`code_challenge`/`code_verifier`), client public sans secret, échange de token |
 | `test_geo_service.py` | Cas réels v1 : acronymes (SDE 22, SIPPEREC…), entités régionales, validation départementale, overrides |
 | `test_restitution_service.py` | Agrégats donuts/stats/filtres + structure JSON v1 sur jeu de données **synthétique** ; absence des champs sensibles (pas d'emails/téléphones) |
 | `test_form_types.py` | Validation Pydantic : rejets attendus (email invalide, IDs non entiers, longueurs, **`javascript:` refusé sur les champs URL** — `HttpUrl`) |
@@ -38,12 +38,12 @@ services, repositories (Grist mocké), smoke tests des routes, et tests de sécu
 
 | Fichier | Ce qui est testé |
 |---|---|
-| `test_auth_routes.py` | Login (envoi du lien)/inscription/logout : 303, flash, neutralité ; `/auth/verifier` : **GET sans effet de bord, consommation par POST uniquement** ; régénération de session à la connexion ; **SMTP en panne → message neutre, pas de 500** |
+| `test_auth_routes.py` | Login/inscription/logout : 303, flash, neutralité ; callback SSO, régénération de session à la connexion |
 | `test_acces.py` | **Matrice rôles × routes** : sans session → 303 login ; En attente → acces-refuse ; Visiteur → pas d'écriture ; API → 401 |
 | `test_idor.py` | Éditeur hors périmètre → **404 en GET ET en POST** sur collectivité, projet et chaque sous-objet d'une autre collectivité (IDs forgés) ; Administrateur exempté |
 | `test_csrf.py` | Tout POST sans token ou token invalide → 403 |
 | `test_headers.py` | Présence et valeur des headers de sécurité émis par l'app (CSP, X-Content-Type-Options, Referrer-Policy) ; `Cache-Control: private` sur l'API restitution |
-| `test_rate_limit.py` | Key function fondée sur l'IP transmise : deux `X-Forwarded-For` différents = compteurs distincts (S3) ; limite par email ciblé sur l'envoi de magic link |
+| `test_rate_limit.py` | Key function fondée sur l'IP transmise : deux `X-Forwarded-For` différents = compteurs distincts (S3) |
 | `test_admin_routes.py` | Validation des comptes, changement de droits, garde-fou anti-auto-rétrogradation ; **prise d'effet d'une rétrogradation ≤ 5 min** (rôle re-résolu à chaque requête, S5) |
 | `test_collectivite_projet_routes.py` | Smoke CRUD complet collectivité + projet + sous-formulaires (Grist mocké) |
 | `test_restitution_api.py` | Structure JSON conforme v1, 401 sans session, absence des champs sensibles dans le payload |

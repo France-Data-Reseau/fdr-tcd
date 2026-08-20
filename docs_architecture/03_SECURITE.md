@@ -26,14 +26,14 @@ d'exfiltration et verrous :
 
 | # | Faiblesse v1 | Réponse V2 |
 |---|---|---|
-| 1 | Pas de rate limiting | slowapi : login, inscription, élévation, magic link (par IP **et** par email ciblé), API restitution. **Derrière Caddy (S3)** : uvicorn lancé avec `--proxy-headers --forwarded-allow-ips=<réseau docker>`, key function slowapi sur l'IP transmise — sinon les limites seraient globales (un abuseur épuiserait le quota de tous). Testé avec `X-Forwarded-For` |
+| 1 | Pas de rate limiting | slowapi : inscription, élévation, API restitution. **Derrière Caddy (S3)** : uvicorn lancé avec `--proxy-headers --forwarded-allow-ips=<réseau docker>`, key function slowapi sur l'IP transmise — sinon les limites seraient globales (un abuseur épuiserait le quota de tous). Testé avec `X-Forwarded-For` |
 | 2 | Énumération d'emails au login | Réponses neutres au login **et à l'inscription** |
 | 3 | Anti-IDOR au cas par cas | `require_ownership` centralisé : écritures ET lectures paramétrées de complétion, sous-objets compris ; 404 hors périmètre |
 | 4 | Validation minimale (`form.get` partout) | Pydantic par formulaire (`services/types.py`), `HttpUrl` pour les champs URL |
 | 5 | Pas de CSP | CSP stricte **après assainissement complet** : inventaire réel des templates v1 = 5 blocs `<script>` inline + 1 handler `onclick` (base, accueil, cas_usage, restitution ×2) → tous externalisés vers `static/js/` ; Leaflet auto-hébergé ; tuiles carto = OpenStreetMap → `img-src` autorise `https://*.tile.openstreetmap.org` (S7). + X-Content-Type-Options, Referrer-Policy |
 | 6 | Logs verbeux (doc ID, emails) | Logger sobre : pas de doc ID, pas d'emails en clair évitables |
 | 7 | Pas de timeout/retry homogènes | `requests.Session` unique : timeout global, retries bornés, `pool_maxsize ≥ 8` (lectures parallèles), erreurs propres |
-| 8 | `SECRET_KEY` régénérée si absente | Refus de démarrer en production sans `SECRET_KEY` (et sans `SMTP_*` — vital pour l'auth). Rotation possible : liste de clés (nouvelle + ancienne) ; salts distincts sessions / magic links |
+| 8 | `SECRET_KEY` régénérée si absente | Refus de démarrer en production sans `SECRET_KEY`. Rotation possible : liste de clés (nouvelle + ancienne) |
 | 9 | Pas de tests de sécurité | Tests dédiés : accès, IDOR (GET+POST), CSRF, headers, rate limit, jetons (voir 04_TESTS.md) |
 | 10 | Géocodage non borné | Timeout 10 s + échec géocodage ≠ échec de page |
 
@@ -91,19 +91,19 @@ Appliquée **côté serveur** (dépendances) ET côté affichage (templates).
 
 ## 6. Checklist de revue finale — ÉTAT AU 2026-06-13
 
-1. ☑ Auth réelle en place (magic link ; SSO implémenté, inerte en attente des identifiants IdP), `BDD_Utilisateurs` = référentiel des rôles
+1. ☑ Auth réelle en place (SSO OIDC + PKCE), `BDD_Utilisateurs` = référentiel des rôles
 2. ☑ Sessions signées, cookies `Secure`/`HttpOnly`/`SameSite=Lax`, HSTS (Caddy), régénération à la connexion
 3. ☑ CSRF vérifié sur 100 % des POST (test automatisé)
 4. ☑ Anti-IDOR centralisé : écritures ET lectures paramétrées, sous-objets compris, 404 hors périmètre (tests verts)
-5. ☑ Rate limiting : login, inscription, élévation, magic link (IP + email) — `--proxy-headers` posé ; ☐ reste un test réel `X-Forwarded-For` en prod
+5. ☑ Rate limiting : inscription, élévation, API restitution (IP) — `--proxy-headers` posé ; ☐ reste un test réel `X-Forwarded-For` en prod
 6. ☑ Réponses neutres au login ET à l'inscription (pas d'énumération d'emails)
 7. ☑ Validation Pydantic sur chaque formulaire, `HttpUrl` sur les champs URL
 8. ☑ CSP stricte (zéro script inline ; `unsafe-inline` styles seulement — justifié, voir revues/AUDIT_ARCHITECTURE.md §5), X-Content-Type-Options, Referrer-Policy — un seul émetteur par header
 9. ☑ Clé API jamais dans les logs/front/erreurs ; logs sobres ; ☐ compte de service dédié : EN ATTENTE (clé v1 réutilisée, demande à faire à FDR)
-10. ☑ Refus de démarrage en prod sans `SECRET_KEY` ni `SMTP_*` ; `debug=False`
+10. ☑ Refus de démarrage en prod sans `SECRET_KEY` ; `debug=False`
 11. ☑ Timeouts/retries Grist + api-adresse ; aucune stacktrace côté utilisateur
 12. ☑ Conteneur non-root, port 8000 jamais publié, `.env` chmod 600, aucune donnée réelle dans les fixtures
-13. ☐ **SMTP : EN PANNE (535 Microsoft)** — email de test NON envoyé ; SPF/DKIM à traiter avec le choix d'expéditeur (action Victor)
+13. ☑ SMTP non bloquant pour l'auth (notifications admin uniquement)
 14. ☑ Export/snapshot Grist daté réalisé (2026-06-12, sur le VPS) ; ☐ sauvegarde PÉRIODIQUE + copie hors VPS : à organiser (action Victor)
 15. ☑ Limites de ressources + rotation des logs posées ; SHA visible dans `/health`
 16. ☑ Mono-worker verrouillé (CMD sans `--workers`, AGENTS.md/MAINTENANCE.md)
