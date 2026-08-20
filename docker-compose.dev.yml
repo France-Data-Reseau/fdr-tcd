@@ -10,7 +10,8 @@ services:
       - ./templates:/app/templates:ro
       - ./static:/app/static:ro
       - ./scripts:/app/scripts:ro
-    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    # Mode dev: 1 process avec autoreload. Pas de --workers.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--forwarded-allow-ips", "*"]
     networks:
       - fdr_tcd_network
     extra_hosts:

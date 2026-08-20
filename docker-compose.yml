@@ -3,19 +3,19 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    init: true
     restart: unless-stopped
     env_file: .env
-    environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-    # Mono-worker: cache memory, magic link tokens, rate limiting all require single process
-    # No --workers flag intentionally (see README.md and MAINTENANCE.md)
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    stop_grace_period: 20s
+    # MONO-WORKER: cache memoire + rate limiting reposent sur 1 process.
+    # Le CMD du Dockerfile n'utilise volontairement PAS --workers.
 
 # For development with hot-reload and port binding, use:
 # docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
