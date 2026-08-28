@@ -1,0 +1,11 @@
+{
+    "include": ["app", "scripts", "tests"],
+    "exclude": [
+        ".venv",
+        "revues"
+    ],
+    "venvPath": ".",
+    "venv": ".venv",
+    "pythonVersion": "3.11",
+    "typeCheckingMode": "standard"
+}

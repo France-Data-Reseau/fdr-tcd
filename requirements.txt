@@ -1,0 +1,12 @@
+fastapi>=0.115
+uvicorn>=0.34
+jinja2>=3.1
+pygrister>=0.9.1
+pydantic[email]>=2.9
+pydantic-settings>=2.6
+python-multipart>=0.0.20
+itsdangerous>=2.2
+slowapi>=0.1.9
+httpx>=0.28
+argon2-cffi>=23.1
+fastapi-oidc>=0.1.0

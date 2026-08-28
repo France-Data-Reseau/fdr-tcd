@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — {% if mode == 'creation' %}Nouveau projet{% else %}{{ record.nom }}{% endif %}{% endblock %}
+
+{% block content %}
+<a href="{% if collectivite_id %}/collectivite/{{ collectivite_id }}{% else %}/{% endif %}" class="btn-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    {% if collectivite_id %}Retour à la collectivité{% else %}Retour à l'accueil{% endif %}
+</a>
+
+{% if mode == 'creation' %}
+<div class="info-banner">
+    <span class="info-banner-icon">i</span>
+    <span>Renseignez les informations principales du projet. Les données complémentaires (cas d'usage, partenaires, programmes, documents) pourront être ajoutées une fois le projet créé.</span>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>{% if mode == 'creation' %}Nouveau projet{% else %}Modifier : {{ record.nom }}{% endif %}</h2>
+
+    {% if collectivite_nom %}
+    <div class="form-group">
+        <label>Collectivité porteuse</label>
+        <div class="readonly-info">{{ collectivite_nom }}</div>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{% if mode == 'creation' %}/projet/nouveau{% else %}/projet/{{ record_id }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="collectivite_id" value="{{ collectivite_id }}">
+
+        <div class="form-group">
+            <label for="nom">Nom du projet</label>
+            <input type="text" id="nom" name="nom" value="{{ record.nom if record else '' }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4">{{ record.description if record else '' }}</textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="avancement">Avancement</label>
+                <select id="avancement" name="avancement">
+                    <option value="">—</option>
+                    {% for opt in choices.avancement %}
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'avancement') == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="echelle">Échelle</label>
+                <select id="echelle" name="echelle">
+                    <option value="">—</option>
+                    {% for opt in choices.echelle %}
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'echelle') == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="connectivites">Connectivité(s)</label>
+                {% set sel_conn = ref_ids_of(record, 'connectivites') %}
+                <select id="connectivites" name="connectivites" multiple size="6">
+                    {% for opt in choices.connectivites %}
+                    <option value="{{ opt.id }}" {% if opt.id in sel_conn %}selected{% endif %}>{{ opt.nom }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs.</small>
+            </div>
+            <div class="form-group">
+                <label>Thème(s)</label>
+                <input type="text" value="" disabled placeholder="Déduits des cas d'usage">
+                <small class="form-hint">Les domaines sont calculés automatiquement à partir des cas d'usage du projet.</small>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="mutualisation">Mutualisation</label>
+                <input type="text" id="mutualisation" name="mutualisation"
+                    list="list-mutualisation"
+                    value="{{ grist_field(record, 'mutualisation') if record else '' }}">
+                <datalist id="list-mutualisation">
+                    {% for opt in choices.mutualisation %}
+                    <option value="{{ opt }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="form-group">
+                <label for="soutien">Soutien</label>
+                <select id="soutien" name="soutien">
+                    <option value="">—</option>
+                    {% for opt in choices.soutien %}
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'soutien') == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="contrats">Contrat(s)</label>
+            {% set sel_contrat = ref_ids_of(record, 'contrats') %}
+            <select id="contrats" name="contrats" multiple size="5">
+                {% for opt in choices.contrats %}
+                <option value="{{ opt.id }}" {% if opt.id in sel_contrat %}selected{% endif %}>{{ opt.nom }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs.</small>
+        </div>
+
+        <div class="form-check">
+            <input type="checkbox" id="dev_interne" name="dev_interne" value="1"
+                {% if record and record.dev_interne %}checked{% endif %}>
+            <label for="dev_interne">Développement interne</label>
+        </div>
+
+        <div class="form-group">
+            <label for="solutions">Solution(s)</label>
+            {% set sel_sol = ref_ids_of(record, 'solutions') %}
+            <select id="solutions" name="solutions" multiple size="6">
+                {% for opt in choices.solutions %}
+                <option value="{{ opt.id }}" {% if opt.id in sel_sol %}selected{% endif %}>{{ opt.nom }}</option>
+                {% endfor %}
+            </select>
+            <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs.</small>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="departements">Département(s)</label>
+                {% set sel_dep = ref_ids_of(record, 'departements') %}
+                <select id="departements" name="departements" multiple size="6">
+                    {% for d in choices.departements %}
+                    <option value="{{ d.id }}" {% if d.id in sel_dep %}selected{% endif %}>{{ d.num_dep }} - {{ d.nom }}</option>
+                    {% endfor %}
+                </select>
+                <small class="form-hint">Ctrl/Cmd + clic pour en sélectionner plusieurs. La région est déduite automatiquement.</small>
+            </div>
+            <div class="form-group">
+                <label>Région</label>
+                <input type="text" value="{{ record.region if record else '' }}" disabled
+                       placeholder="Déduite du/des département(s)">
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" name="action" value="save" class="btn btn-primary">
+                {% if mode == 'creation' %}Créer le projet{% else %}Enregistrer les modifications{% endif %}
+            </button>
+            {% if mode == 'creation' %}
+            <button type="submit" name="action" value="autre" class="btn btn-accent">
+                Enregistrer et ajouter un autre projet
+            </button>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if mode == 'edition' %}
+<div class="card">
+    <h2>Données liées</h2>
+
+    <div class="sub-links">
+        <a href="/projet/{{ record_id }}/cas-usage/nouveau?collectivite_id={{ collectivite_id }}" class="sub-link-card">
+            <span class="count">{{ sous_formulaires.cas_usages|length }}</span>
+            <span class="label">Cas d'usage</span>
+        </a>
+        <a href="/projet/{{ record_id }}/partenaire/nouveau?collectivite_id={{ collectivite_id }}" class="sub-link-card">
+            <span class="count">{{ sous_formulaires.partenaires|length }}</span>
+            <span class="label">Partenaires</span>
+        </a>
+        <a href="/projet/{{ record_id }}/programme/nouveau?collectivite_id={{ collectivite_id }}" class="sub-link-card">
+            <span class="count">{{ sous_formulaires.programmes|length }}</span>
+            <span class="label">Programmes</span>
+        </a>
+        <a href="/projet/{{ record_id }}/document/nouveau?collectivite_id={{ collectivite_id }}" class="sub-link-card">
+            <span class="count">{{ sous_formulaires.documents|length }}</span>
+            <span class="label">Documents</span>
+        </a>
+        <a href="/projet/{{ record_id }}/contact/nouveau?collectivite_id={{ collectivite_id }}" class="sub-link-card">
+            <span class="count">{{ sous_formulaires.contacts|length }}</span>
+            <span class="label">Contacts</span>
+        </a>
+    </div>
+</div>
+
+{% if sous_formulaires.cas_usages %}
+<div class="card">
+    <h3>Cas d'usage</h3>
+    <ul class="record-list">
+        {% for r in sous_formulaires.cas_usages %}
+        <li><span>{{ r.nom }}</span><span class="record-meta">{{ grist_field(r, 'theme') }}</span></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if sous_formulaires.partenaires %}
+<div class="card">
+    <h3>Partenaires</h3>
+    <ul class="record-list">
+        {% for r in sous_formulaires.partenaires %}
+        <li><span>{{ r.nom }}</span><span class="record-meta">{{ grist_field(r, 'roles') }}</span></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if sous_formulaires.programmes %}
+<div class="card">
+    <h3>Programmes</h3>
+    <ul class="record-list">
+        {% for r in sous_formulaires.programmes %}
+        <li><span>{{ r.nom }}</span><span class="record-meta">{{ r.echelle }}</span></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if sous_formulaires.documents %}
+<div class="card">
+    <h3>Documents</h3>
+    <ul class="record-list">
+        {% for r in sous_formulaires.documents %}
+        <li><span>{{ r.titre }}</span><span class="record-meta">{{ grist_field(r, 'type') }}</span></li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if sous_formulaires.contacts %}
+<div class="card">
+    <h3>Contacts</h3>
+    <ul class="record-list">
+        {% for r in sous_formulaires.contacts %}
+        <li>
+            <span>{{ r.prenom }} {{ r.nom }}{% if r.elu %} — Élu·e{% endif %}</span>
+            <span class="record-meta">{{ r.fonction }}{% if r.email %} · {{ r.email }}{% endif %}</span>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}{% endblock %}

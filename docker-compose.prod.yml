@@ -1,0 +1,20 @@
+services:
+  app:
+    environment:
+      - VIRTUAL_HOST
+      - VIRTUAL_PORT=8000
+      - LETSENCRYPT_HOST=${VIRTUAL_HOST}
+    mem_limit: 512m
+    cpus: 1.0
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - lb_web
+
+
+networks:
+  lb_web:
+    external: true

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Accueil{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Sélectionner une collectivité</h2>
+
+    <div class="search-box">
+        <input type="text" id="search" placeholder="Rechercher une collectivité..." autocomplete="off">
+    </div>
+
+    <ul class="collectivite-list" id="coll-list">
+        {% for coll in collectivites %}
+        <li data-nom="{{ coll.nom|lower }}">
+            <a href="/collectivite/{{ coll.id }}">
+                <span>{{ coll.nom }}</span>
+                {% set dep = coll.num_dep %}{% set statut = grist_field(coll, 'statut') %}
+                <span class="coll-meta">{% if dep or statut %}[{{ dep }}{% if dep and statut %} — {% endif %}{{ statut }}]{% endif %}</span>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="no-results" id="no-results">
+        <p>Aucune collectivité trouvée pour cette recherche.</p>
+        <a href="/collectivite/nouveau" class="btn btn-primary">+ Créer une nouvelle collectivité</a>
+    </div>
+</div>
+
+<div class="btn-group" style="justify-content: center;">
+    <a href="/collectivite/nouveau" class="btn btn-primary">+ Créer une nouvelle collectivité</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/accueil.js" defer></script>
+{% endblock %}

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Cartographie{% endblock %}
+
+{% block head_extra %}
+<link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css" />
+{% endblock %}
+
+{% block container_class %}container-wide{% endblock %}
+
+{% block content %}
+
+<!-- ===================== LOADING GLOBAL ===================== -->
+<div id="loading-overlay" class="loading-overlay-full">
+    <div class="loading-spinner-lg"></div>
+    <p>Chargement des données...</p>
+</div>
+
+<!-- ===================== CONTENU (masqué pendant le chargement) ===================== -->
+<div id="main-content" style="display:none;"
+     data-droits="{{ user.droits if user else '' }}"
+     data-collectivite-id="{{ user.collectivite_id if user and user.collectivite_id else 0 }}">
+
+<div class="restit-topbar">
+    <a href="/" class="btn-back">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+        Accueil
+    </a>
+    <div class="tabs-bar tabs-bar-compact">
+        <button class="tab-btn active" data-tab="general">Général</button>
+        <button class="tab-btn" data-tab="ma-collectivite">Ma Collectivité</button>
+    </div>
+    <div class="restit-topbar-spacer"></div>
+    {% if user and user.droits in ("Administrateur", "Editeur") and user.collectivite_id %}
+    <a href="/collectivite/{{ user.collectivite_id }}" class="btn btn-primary btn-sm">Compléter les données</a>
+    {% elif user and user.droits == "Administrateur" %}
+    <a href="/contribution" class="btn btn-primary btn-sm">Compléter les données</a>
+    {% endif %}
+</div>
+
+<!-- ===================== ONGLET GÉNÉRAL ===================== -->
+<div id="tab-general" class="tab-content active">
+
+    <!-- Chiffres clés -->
+    <div class="restit-stats-row">
+        <div class="stat-card">
+            <div class="stat-value" id="s-collectivites">-</div>
+            <div class="stat-label">Collectivités</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="s-projets">-</div>
+            <div class="stat-label">Projets</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value" id="s-cas-usages">-</div>
+            <div class="stat-label">Cas d'usage</div>
+        </div>
+    </div>
+
+    <!-- Carte + Filtres + Cas d'usage (3 colonnes) -->
+    <div class="restit-main-3col">
+        <div class="restit-map-col">
+            <div class="card map-card">
+                <div id="map"></div>
+            </div>
+            <div class="map-legend-bar" id="map-legend-bar"></div>
+        </div>
+        <div class="restit-filter-col">
+            <div class="card filter-card filter-card-side">
+                <h3 class="filter-title">Filtres</h3>
+                <div class="filter-stack">
+                    <div class="filter-group">
+                        <label>Couverture</label>
+                        <select id="f-couverture"><option value="">Toutes</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Type de collectivité</label>
+                        <select id="f-statut"><option value="">Tous</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Thème</label>
+                        <select id="f-domaine"><option value="">Tous</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Connectivité</label>
+                        <select id="f-connectivite"><option value="">Toutes</option></select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Avancement</label>
+                        <div class="av-slider-label" id="av-slider-label">Tous</div>
+                        <input type="range" class="av-slider" id="av-slider" min="0" max="1" step="1" value="0">
+                    </div>
+                </div>
+                <div style="margin-top:0.75rem;">
+                    <button class="btn btn-secondary btn-sm" id="reset-filters" style="width:100%;">Effacer les filtres</button>
+                </div>
+            </div>
+        </div>
+        <div class="restit-cas-col">
+            <div class="card filter-card filter-card-side">
+                <h3 class="filter-title">Cas d'usage</h3>
+                <div class="cas-usage-checks" id="cas-usage-checks"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distributions — donuts -->
+    <div class="distributions-grid">
+        <div class="card distrib-card">
+            <h3><span class="distrib-emoji">🌐</span> Par connectivité</h3>
+            <div class="pie-wrapper">
+                <div class="pie-chart" id="pie-connectivite"></div>
+                <div class="pie-legend" id="legend-connectivite"></div>
+            </div>
+        </div>
+        <div class="card distrib-card">
+            <h3><span class="distrib-emoji">📊</span> Par thème</h3>
+            <div class="pie-wrapper">
+                <div class="pie-chart" id="pie-domaine"></div>
+                <div class="pie-legend" id="legend-domaine"></div>
+            </div>
+        </div>
+        <div class="card distrib-card">
+            <h3><span class="distrib-emoji">🏛️</span> Par type de collectivité</h3>
+            <div class="pie-wrapper">
+                <div class="pie-chart" id="pie-statut"></div>
+                <div class="pie-legend" id="legend-statut"></div>
+            </div>
+        </div>
+        <div class="card distrib-card">
+            <h3><span class="distrib-emoji">📈</span> Avancement</h3>
+            <div class="pie-wrapper">
+                <div class="pie-chart" id="pie-avancement"></div>
+                <div class="pie-legend" id="legend-avancement"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des projets filtrés -->
+    <div class="card" id="projets-list-card" style="margin-top:0.75rem;">
+        <h3>Projets</h3>
+        <div id="projets-list-container">
+            <div class="table-scroll">
+                <table class="projets-table">
+                    <thead>
+                        <tr>
+                            <th>Nom du projet</th>
+                            <th class="col-collectivite">Collectivité</th>
+                            <th>Département</th>
+                            <th>Connectivité</th>
+                            <th>Couverture</th>
+                            <th class="col-cas-usage">Cas d'usage</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projets-table-body"></tbody>
+                </table>
+            </div>
+            <div class="empty" id="projets-list-empty" style="display:none;">Aucun projet pour les filtres sélectionnés.</div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ===================== ONGLET MA COLLECTIVITÉ ===================== -->
+<div id="tab-ma-collectivite" class="tab-content">
+    {% if user and user.droits == "Administrateur" %}
+    <div class="card" style="max-width:500px;">
+        <div class="form-group" style="margin-bottom:0">
+            <label for="select-ma-coll">Sélectionner une collectivité</label>
+            <select id="select-ma-coll">
+                <option value="">-- Choisir --</option>
+                {% for coll in collectivites %}
+                <option value="{{ coll.id }}">{{ coll.nom }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    {% endif %}
+    <div id="ma-coll-content">
+        <div class="empty">Sélectionnez l'onglet pour afficher les données de votre collectivité.</div>
+    </div>
+</div>
+
+<!-- ===================== MODALE PROJET ===================== -->
+<div id="projet-modal" class="modal-overlay" style="display:none;">
+    <div class="modal-card">
+        <button class="modal-close" id="modal-close">&times;</button>
+        <div id="modal-body"></div>
+    </div>
+</div>
+
+</div><!-- fin #main-content -->
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/leaflet/leaflet.js"></script>
+<script src="/static/js/restitution.js" defer></script>
+{% endblock %}

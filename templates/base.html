@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}FNCCR — Saisie{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css?v=13">
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <a href="/" class="header-brand">
+                <img src="/static/logo.jpg" alt="FNCCR" class="header-logo">
+            </a>
+            <h1 class="header-title">Cartographie des Usages TCD<br>des Collectivités</h1>
+            {% if user %}
+            <div class="header-user-info">
+                <span class="header-user-label">Connecté en tant que</span>
+                <span class="header-user-name">{{ user.prenom }} {{ user.nom }}</span>
+            {% if user.organisation %}<span class="header-user-org">{{ user.organisation }}</span>{% endif %}
+                <span class="header-user-role">{{ user.droits }}</span>
+            </div>
+            {% endif %}
+            <nav class="header-nav">
+                <a href="/" class="nav-home" title="Menu principal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span>Menu principal</span>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container {% block container_class %}{% endblock %}">
+        {% for msg in messages %}
+        <div class="flash flash-{{ msg.category }}">
+            {{ msg.message }}
+        </div>
+        {% endfor %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        FNCCR — Observatoire des Territoires Connectés
+    </footer>
+
+    {% block scripts %}{% endblock %}
+<script src="/static/js/app.js" defer></script>
+</body>
+</html>

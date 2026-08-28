@@ -1,0 +1,22 @@
+# Secrets — jamais commités
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Matériel de travail (non livré, non versionné — peut contenir des données réelles)
+revues/
+.claude/
+
+# Artefacts
+*.tar
+*.tar.gz
+exports_grist/
+wheels/
+
+# Google Drive
+desktop.ini

@@ -1,0 +1,38 @@
+# Development override: binds ports, enables hot-reload, mounts code volumes
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  app:
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./app:/app/app:ro
+      - ./templates:/app/templates:ro
+      - ./static:/app/static:ro
+      - ./scripts:/app/scripts:ro
+    # Mode dev: 1 process avec autoreload. Pas de --workers.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--proxy-headers", "--forwarded-allow-ips", "*"]
+    networks:
+      - fdr_tcd_network
+    extra_hosts:
+      - "keycloak.localhost:host-gateway"
+  keycloak:
+    image: keycloak/keycloak:26.0.7
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: dev-file
+      KC_HOSTNAME: keycloak.localhost
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./fdr-realm.json:/opt/keycloak/data/import/fdr-realm.json
+    networks:
+      - fdr_tcd_network
+
+networks:
+  fdr_tcd_network:
+    driver: bridge

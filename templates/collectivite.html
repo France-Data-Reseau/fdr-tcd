@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — {% if mode == 'creation' %}Nouvelle collectivité{% else %}{{ record.nom }}{% endif %}{% endblock %}
+
+{% block content %}
+<a href="{% if user and user.droits == 'Administrateur' %}/contribution{% else %}/{% endif %}" class="btn-back">
+    <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    {% if user and user.droits == 'Administrateur' %}Retour à la liste{% else %}Retour à l'accueil{% endif %}
+</a>
+
+<div class="card">
+    <h2>{% if mode == 'creation' %}Nouvelle collectivité{% else %}Modifier : {{ record.nom }}{% endif %}</h2>
+
+    <form method="POST" action="{% if mode == 'creation' %}/collectivite/nouveau{% else %}/collectivite/{{ record_id }}{% endif %}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nom">Nom</label>
+                <input type="text" id="nom" name="nom" value="{{ record.nom if record else '' }}" required>
+            </div>
+            <div class="form-group">
+                <label for="siren">SIREN</label>
+                <input type="number" id="siren" name="siren" value="{{ record.siren|int if record and record.siren else '' }}">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="statut">Statut</label>
+                <select id="statut" name="statut">
+                    <option value="">—</option>
+                    {% for opt in choices.statut %}
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'statut') == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="couverture">Couverture</label>
+                <select id="couverture" name="couverture">
+                    <option value="">—</option>
+                    {% for opt in choices.couverture %}
+                    <option value="{{ opt }}" {% if record and grist_field(record, 'couverture') == opt %}selected{% endif %}>{{ opt }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="departement">Département</label>
+                <select id="departement" name="departement">
+                    <option value="0">—</option>
+                    {% for d in choices.departements %}
+                    <option value="{{ d.id }}" {% if record and record.departement == d.id %}selected{% endif %}>{{ d.num_dep }} - {{ d.nom }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Région</label>
+                <input type="text" value="{{ record.region if record else '' }}" disabled
+                       placeholder="Déduite du département">
+                <small class="form-hint">Région et numéro de département déduits automatiquement.</small>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="site_web">Site web</label>
+            <input type="url" id="site_web" name="site_web" value="{{ record.site_web if record else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="adresse">Adresse</label>
+            <input type="text" id="adresse" name="adresse" value="{{ record.adresse if record else '' }}">
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-primary">
+                {% if mode == 'creation' %}Créer la collectivité{% else %}Enregistrer les modifications{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+{% if mode == 'edition' %}
+<div class="card">
+    <h2>Projets liés</h2>
+
+    {% if projets_lies %}
+    <div class="projet-chips">
+        {% for projet in projets_lies %}
+        <a href="/projet/{{ projet.id }}?collectivite_id={{ record_id }}" class="projet-chip">
+            {{ projet.nom }}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty">Aucun projet lié pour l'instant.</p>
+    {% endif %}
+
+    <div class="btn-group">
+        <a href="/projet/nouveau?collectivite_id={{ record_id }}" class="btn btn-primary btn-sm">+ Ajouter un projet</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}{% endblock %}

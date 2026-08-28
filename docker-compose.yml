@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    restart: unless-stopped
+    env_file: .env
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    stop_grace_period: 20s
+    # MONO-WORKER: cache memoire + rate limiting reposent sur 1 process.
+    # Le CMD du Dockerfile n'utilise volontairement PAS --workers.
+
+# For development with hot-reload and port binding, use:
+# docker-compose -f docker-compose.yml -f docker-compose.dev.yml up

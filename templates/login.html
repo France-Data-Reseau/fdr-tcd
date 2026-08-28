@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Connexion{% endblock %}
+
+{% block content %}
+<div class="login-wrapper">
+    <div class="card">
+        <h2>Connexion</h2>
+        <p class="login-subtitle">Connectez-vous avec France Data Reseau.</p>
+
+        {% if sso_actif %}
+        <div class="btn-group" style="justify-content: center; margin-bottom: 1rem;">
+            <a href="/auth/sso" class="btn btn-primary" style="width:100%; text-align:center;">Se connecter avec France Data Réseau</a>
+        </div>
+        {% else %}
+        <p class="login-subtitle" style="text-align:center;">Aucun moyen de connexion n'est actuellement configuré.</p>
+        {% endif %}
+
+        {# Inscription masquée — liste fermée (cadrage 2026-08-27). Conservée
+           « en stock » : décommenter pour réactiver l'auto-demande d'accès.
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="/inscription" style="font-size: 0.85rem; color: var(--gray-500);">Pas encore de compte ? Demander un accès</a>
+        </div>
+        #}
+    </div>
+</div>
+{% endblock %}

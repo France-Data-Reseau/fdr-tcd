@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}FNCCR — Console Administrateur{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>Console Administrateur</h2>
+    <p class="login-subtitle">
+        Gérez les droits des utilisateurs et leur collectivité de rattachement.
+        Les modifications sont enregistrées immédiatement dans la base.
+    </p>
+
+    {% if pending_count %}
+    <div class="admin-pending-notice">
+        <span class="notif-badge">{{ pending_count }}</span>
+        compte(s) en attente de validation — affiché(s) en haut de la liste.
+    </div>
+    {% endif %}
+
+    <div class="admin-users">
+        <div class="admin-user-row admin-user-head">
+            <div class="admin-user-info"><strong>Utilisateur</strong></div>
+            <div class="admin-user-controls">
+                <span class="admin-col-label">Droits</span>
+                <span class="admin-col-label">Collectivité</span>
+                <span></span>
+            </div>
+        </div>
+
+        {% for u in users %}
+        <form method="post" action="/admin/utilisateur/{{ u.id }}" class="admin-user-row">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+            <div class="admin-user-info">
+                <strong>{{ u.prenom }} {{ u.nom }}{% if u.droits == "En attente" %} <span class="notif-badge notif-badge-text">À valider</span>{% endif %}</strong>
+                <span class="admin-user-email">{{ u.email }}</span>
+                {% if u.organisation %}<span class="admin-user-org">{{ u.organisation }}</span>{% endif %}
+                <span class="admin-user-date">{% if u.date_inscription %}Inscrit le {{ u.date_inscription }}{% else %}Date d'inscription inconnue{% endif %}</span>
+            </div>
+
+            <div class="admin-user-controls">
+                <select name="droits" aria-label="droits">
+                    {% for d in droits_options %}
+                    <option value="{{ d }}" {% if u.droits == d %}selected{% endif %}>{{ d }}</option>
+                    {% endfor %}
+                </select>
+
+                <select name="collectivite" aria-label="Collectivité">
+                    <option value="0" {% if not u.collectivite %}selected{% endif %}>— Aucune —</option>
+                    {% for c in collectivites %}
+                    <option value="{{ c.id }}" {% if u.collectivite == c.id %}selected{% endif %}>{{ c.nom }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit" class="btn btn-primary btn-sm">Enregistrer</button>
+            </div>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .admin-users { display: flex; flex-direction: column; }
+    .admin-user-row {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 0.75rem 0; border-bottom: 1px solid var(--gray-100);
+        flex-wrap: wrap;
+    }
+    .admin-user-head { border-bottom: 2px solid var(--gray-200); padding-top: 0; }
+    .admin-user-info { flex: 1 1 240px; min-width: 220px; display: flex; flex-direction: column; gap: 0.1rem; }
+    .admin-user-email { font-size: 0.82rem; color: var(--gray-500); }
+    .admin-user-org { font-size: 0.78rem; color: var(--gray-400); }
+    .admin-user-date { font-size: 0.75rem; color: var(--gray-400); font-style: italic; }
+    .admin-pending-notice {
+        display: flex; align-items: center; gap: 0.5rem; margin: 0.5rem 0 1rem;
+        padding: 0.6rem 0.9rem; background: #fdecec; border: 1px solid #f5c2c2;
+        border-radius: 8px; font-size: 0.88rem; color: #a12828;
+    }
+    .notif-badge {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-width: 20px; height: 20px; padding: 0 6px; background: #e23b3b;
+        color: #fff; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+    }
+    .notif-badge-text { height: auto; padding: 1px 8px; margin-left: 0.4rem; }
+    .admin-user-controls {
+        display: flex; align-items: center; gap: 0.6rem; flex: 2 1 420px; flex-wrap: wrap;
+    }
+    .admin-user-controls select { min-width: 150px; flex: 1 1 150px; }
+    .admin-col-label { flex: 1 1 150px; font-size: 0.8rem; font-weight: 600; color: var(--gray-500); }
+    .admin-user-controls .btn { flex: 0 0 auto; }
+</style>
+{% endblock %}
