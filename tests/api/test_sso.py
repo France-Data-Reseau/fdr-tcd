@@ -86,14 +86,14 @@ def test_callback_compte_en_attente_vers_acces_refuse(client, sso):
     assert reponse.headers["location"] == "/acces-refuse"
 
 
-def test_callback_email_inconnu_oriente_vers_inscription(client, sso):
+def test_callback_email_inconnu_refuse_vers_login(client, sso):
+    # Liste fermée : un email non provisionné par un admin n'ouvre aucune session
+    # et n'est PLUS orienté vers l'inscription — retour à /login.
     sso(email="nouveau@exemple.fr")
     reponse = client.get("/auth/callback", follow_redirects=False)
     assert reponse.status_code == 303
-    assert reponse.headers["location"] == "/inscription"
-    page = client.get("/inscription")
-    assert 'value="nouveau@exemple.fr"' in page.text  # email pré-rempli
-    # Pas de session ouverte : l'IdP a vérifié l'identité mais aucun compte
+    assert reponse.headers["location"] == "/login"
+    # Pas de session ouverte : l'IdP a vérifié l'identité mais aucun compte autorisé
     assert client.get("/", follow_redirects=False).headers["location"] == "/login"
 
 
