@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     OIDC_ISSUER: str = ""
     OIDC_CLIENT_ID: str = ""
     OIDC_CLIENT_SECRET: str = ""
+    # Sécurité (défense en profondeur) : refuser les identités dont l'email n'est
+    # pas marqué vérifié par l'IdP. DÉSACTIVÉ par défaut car l'IdP doit d'abord
+    # émettre le claim `email_verified` dans l'id_token (ex. mapper Keycloak) —
+    # sinon TOUS les logins seraient refusés. Passer à True une fois l'IdP configuré.
+    OIDC_REQUIRE_EMAIL_VERIFIED: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"

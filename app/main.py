@@ -13,6 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import (
@@ -116,3 +117,17 @@ async def grist_error_handler(request: Request, exc: GristError):
         "message": "Le service de données est momentanément indisponible. "
                    "Réessayez dans quelques instants.",
     }, status_code=503)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # 404 (anti-IDOR, route inconnue) et 403 (CSRF) : page stylée pour le
+    # navigateur, JSON pour l'API — parité avec grist_error_handler.
+    detail = str(exc.detail) if exc.detail else ""
+    if request.url.path.startswith("/api/"):
+        return JSONResponse({"error": detail or "Erreur"}, status_code=exc.status_code)
+    titres = {403: "Accès refusé", 404: "Page introuvable"}
+    return render(request, "erreur.html", {
+        "titre": titres.get(exc.status_code, "Erreur"),
+        "message": detail or "Une erreur est survenue.",
+    }, status_code=exc.status_code)

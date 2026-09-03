@@ -170,8 +170,13 @@ class OidcService:
         if not email:
             logger.warning("SSO : aucun email dans le jeton de l'IdP")
             return None
-        # email_verified peut être absent selon l'IdP : on ne refuse que le faux explicite
-        if getattr(token, "email_verified", None) is False:
+        # Sécurité (opt-in) : quand OIDC_REQUIRE_EMAIL_VERIFIED est actif, refuser
+        # tout jeton dont le claim email_verified n'est pas True (absent OU False).
+        # N'activer QUE si l'IdP émet ce claim dans l'id_token (voir config.py).
+        if (
+            self._settings.OIDC_REQUIRE_EMAIL_VERIFIED
+            and getattr(token, "email_verified", None) is not True
+        ):
             logger.warning("SSO : email non vérifié par l'IdP — refusé")
             return None
         return email
