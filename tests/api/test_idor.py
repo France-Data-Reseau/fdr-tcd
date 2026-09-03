@@ -83,7 +83,7 @@ def test_editeur_creation_projet_pour_collectivite_d_autrui_404(client):
 def test_editeur_sous_objets_d_un_projet_d_autrui_404(client):
     """Faiblesse v1 n°3 : les sous-objets sont couverts, GET et POST."""
     connecter(client, "editeur@exemple.fr")
-    for route in ("cas-usage", "partenaire", "programme", "document", "contact"):
+    for route in ("cas-usage", "partenaire", "programme", "document"):
         assert client.get(f"/projet/11/{route}/nouveau").status_code == 404, route
     page = client.get("/projet/10/document/nouveau?collectivite_id=5")
     reponse = client.post(

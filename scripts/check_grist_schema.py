@@ -25,17 +25,13 @@ SCHEMA_ATTENDU: dict[str, set[str]] = {
         "fnccr", "num", "eau", "aode", "tre", "ep", "dec",
     },
     "BDD_Connectivites": {"nom", "projets"},
-    "BDD_Contacts": {
-        "prenom", "nom", "nom_complet", "elu", "collectivite", "fonction",
-        "email", "telephone", "mobile", "projets",
-    },
     "BDD_Contrats": {"nom"},
     "BDD_Departements": {"nom", "num_dep", "region", "projets"},
     "BDD_Documents": {"titre", "lien", "projet", "type", "annee"},
     "BDD_Partenaires": {"nom", "roles", "url", "projets"},
     "BDD_Programmes": {"nom", "info_web", "echelle", "projets"},
     "BDD_Projets": {
-        "nom", "collectivites_porteuses", "contacts", "description",
+        "nom", "collectivites_porteuses", "description",
         "connectivites", "themes", "avancement", "partenaires", "dev_interne",
         "solutions", "cas_d_usage", "echelle", "mutualisation", "soutien", "programmes",
         "contrats", "departements", "region", "documents",

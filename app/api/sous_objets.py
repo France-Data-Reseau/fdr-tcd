@@ -1,5 +1,4 @@
-"""Sous-formulaires de projet : cas d'usage, partenaire, programme, document,
-contact.
+"""Sous-formulaires de projet : cas d'usage, partenaire, programme, document.
 
 Toutes les routes (GET comme POST) vérifient que le PROJET appartient au
 périmètre de l'utilisateur (anti-IDOR B2, 404 uniforme). Chaque POST gère
@@ -14,7 +13,6 @@ from app.core.flash import flash
 from app.core.security import verify_csrf
 from app.core.templating import render
 from app.dependencies import (
-    get_collectivite_repository,
     get_projet_repository,
     get_projet_service,
     require_editor,
@@ -24,7 +22,6 @@ from app.repositories.types import ProjetRecord, UtilisateurRecord
 from app.services.types import (
     CasUsageCreationForm,
     CasUsageSelectionForm,
-    ContactForm,
     DocumentForm,
     PartenaireForm,
     ProgrammeForm,
@@ -313,71 +310,4 @@ def document_creer(
 
     if action == "autre":
         return _continuer("document", projet_id, collectivite_id)
-    return _retour_projet(projet_id, collectivite_id)
-
-
-# ============================================================
-# Contacts
-# ============================================================
-
-
-@router.get("/projet/{projet_id}/contact/nouveau")
-def contact_nouveau(
-    request: Request,
-    projet_id: int,
-    collectivite_id: int = 0,
-    utilisateur: UtilisateurRecord = Depends(require_editor),
-):
-    _projet_du_perimetre(utilisateur, projet_id)
-    return render(
-        request,
-        "contact.html",
-        {
-            "projet_id": projet_id,
-            "collectivite_id": collectivite_id,
-            "collectivite_nom": get_collectivite_repository().get_nom(collectivite_id)
-            if collectivite_id
-            else "",
-        },
-        user=utilisateur,
-    )
-
-
-@router.post("/projet/{projet_id}/contact/nouveau")
-def contact_creer(
-    request: Request,
-    projet_id: int,
-    utilisateur: UtilisateurRecord = Depends(require_editor),
-    csrf_token: str = Form(""),
-    collectivite_id: int = Form(0),
-    action: str = Form("retour"),
-    prenom: str = Form(""),
-    nom: str = Form(""),
-    elu: str = Form(""),
-    fonction: str = Form(""),
-    email: str = Form(""),
-    telephone: str = Form(""),
-    mobile: str = Form(""),
-):
-    _projet_du_perimetre(utilisateur, projet_id)
-    verify_csrf(request, csrf_token)
-    try:
-        formulaire = ContactForm(
-            prenom=prenom,
-            nom=nom,
-            elu=bool(elu),
-            fonction=fonction,
-            email=email,
-            telephone=telephone,
-            mobile=mobile,
-        )
-    except ValidationError:
-        flash(request, "Prénom et nom sont obligatoires (email valide si "
-                       "renseigné).", "error")
-        return _continuer("contact", projet_id, collectivite_id)
-    get_projet_service().create_contact(projet_id, collectivite_id, formulaire)
-    flash(request, "Contact créé avec succès !")
-
-    if action == "autre":
-        return _continuer("contact", projet_id, collectivite_id)
     return _retour_projet(projet_id, collectivite_id)

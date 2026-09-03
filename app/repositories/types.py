@@ -14,7 +14,6 @@ from typing import Any, NotRequired, TypedDict
 TABLE_CAS_USAGES = "BDD_CasUsages"
 TABLE_COLLECTIVITES = "BDD_Collectivites"
 TABLE_CONNECTIVITES = "BDD_Connectivites"
-TABLE_CONTACTS = "BDD_Contacts"
 TABLE_CONTRATS = "BDD_Contrats"
 TABLE_DEPARTEMENTS = "BDD_Departements"
 TABLE_DOCUMENTS = "BDD_Documents"
@@ -90,7 +89,6 @@ class ProjetRecord(TypedDict):
     id: int
     nom: str
     collectivites_porteuses: NotRequired[list]  # RefList:BDD_Collectivites
-    contacts: NotRequired[list]  # RefList:BDD_Contacts
     description: NotRequired[str]
     connectivites: NotRequired[list]  # RefList:BDD_Connectivites
     themes: NotRequired[Any]  # formule (thèmes des cas d'usage) — jamais écrite
@@ -122,20 +120,6 @@ class ConnectiviteRecord(TypedDict):
     id: int
     nom: str
     projets: NotRequired[list]
-
-
-class ContactRecord(TypedDict):
-    id: int
-    prenom: NotRequired[str]
-    nom: NotRequired[str]
-    nom_complet: NotRequired[str]  # formule — jamais écrite
-    elu: NotRequired[bool]
-    collectivite: NotRequired[int]  # Ref:BDD_Collectivites
-    fonction: NotRequired[str]
-    email: NotRequired[str]
-    telephone: NotRequired[str]
-    mobile: NotRequired[str]
-    projets: NotRequired[Any]  # Text en v1 (nom du projet) — dette assumée
 
 
 class ContratRecord(TypedDict):

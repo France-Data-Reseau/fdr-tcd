@@ -1,7 +1,5 @@
 """Restitution : page, API JSON (structure v1), 401, absence de données sensibles."""
 
-import json
-
 from tests.conftest import connecter
 
 
@@ -78,12 +76,3 @@ def test_api_stats_et_filtres(client):
     assert data["stats"]["par_connectivite"] == {"LoRaWAN": 1}
     assert "Gestion de l'éclairage public" in data["filtres"]["domaines"]
     assert data["filtres"]["statuts"] == ["EPCI", "Syndicat"]
-
-
-def test_api_aucune_donnee_de_contact(client):
-    """Anti-exfiltration : ni email ni téléphone de contact dans le payload."""
-    connecter(client, "visiteur@exemple.fr")
-    brut = json.dumps(client.get("/api/cartographie/donnees").json())
-    assert "jean@ville.fr" not in brut
-    assert "telephone" not in brut
-    assert "Dupont" not in brut

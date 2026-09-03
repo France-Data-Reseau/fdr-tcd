@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
 
 TABLES = [
-    "BDD_CasUsages", "BDD_Collectivites", "BDD_Connectivites", "BDD_Contacts",
+    "BDD_CasUsages", "BDD_Collectivites", "BDD_Connectivites",
     "BDD_Contrats", "BDD_Departements", "BDD_Documents", "BDD_Partenaires",
     "BDD_Programmes", "BDD_Projets", "BDD_Solutions", "BDD_Utilisateurs",
 ]

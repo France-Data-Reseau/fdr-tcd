@@ -184,12 +184,6 @@ DOCUMENTS_TEST = [
      "projet": 10},
 ]
 
-CONTACTS_TEST = [
-    {"id": 60, "prenom": "Jean", "nom": "Dupont", "elu": False,
-     "fonction": "DSI", "email": "jean@ville.fr", "telephone": "", "mobile": "",
-     "collectivite": 5, "projets": "Projet Lampadaires"},
-]
-
 CONNECTIVITES_TEST = [
     {"id": 70, "nom": "LoRaWAN", "projets": ["L", 10]},
     {"id": 71, "nom": "5G", "projets": []},
@@ -226,7 +220,6 @@ def client(fake_grist, monkeypatch):
     fake_grist.records["BDD_Partenaires"] = deepcopy(PARTENAIRES_TEST)
     fake_grist.records["BDD_Programmes"] = deepcopy(PROGRAMMES_TEST)
     fake_grist.records["BDD_Documents"] = deepcopy(DOCUMENTS_TEST)
-    fake_grist.records["BDD_Contacts"] = deepcopy(CONTACTS_TEST)
     fake_grist.records["BDD_Connectivites"] = deepcopy(CONNECTIVITES_TEST)
     fake_grist.records["BDD_Contrats"] = deepcopy(CONTRATS_TEST)
     fake_grist.records["BDD_Solutions"] = deepcopy(SOLUTIONS_TEST)

@@ -26,10 +26,6 @@ from app.repositories.collectivite_repository import (
     CollectiviteRepositoryProtocol,
     GristCollectiviteRepository,
 )
-from app.repositories.contact_repository import (
-    ContactRepositoryProtocol,
-    GristContactRepository,
-)
 from app.repositories.document_repository import (
     DocumentRepositoryProtocol,
     GristDocumentRepository,
@@ -160,11 +156,6 @@ def get_document_repository() -> DocumentRepositoryProtocol:
 
 
 @lru_cache
-def get_contact_repository() -> ContactRepositoryProtocol:
-    return GristContactRepository(get_grist_api(), get_table_cache())
-
-
-@lru_cache
 def get_oidc_service() -> OidcService:
     return OidcService(get_settings())
 
@@ -199,7 +190,6 @@ def get_projet_service() -> ProjetService:
         get_partenaire_repository(),
         get_programme_repository(),
         get_document_repository(),
-        get_contact_repository(),
     )
 
 
@@ -221,7 +211,6 @@ def reset_singletons() -> None:
         get_partenaire_repository,
         get_programme_repository,
         get_document_repository,
-        get_contact_repository,
         get_projet_service,
         get_geocode_client,
         get_restitution_service,
