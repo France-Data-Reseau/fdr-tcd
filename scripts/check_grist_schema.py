@@ -33,7 +33,7 @@ SCHEMA_ATTENDU: dict[str, set[str]] = {
     "BDD_Projets": {
         "nom", "collectivites_porteuses", "description",
         "connectivites", "themes", "avancement", "partenaires", "dev_interne",
-        "solutions", "cas_d_usage", "echelle", "mutualisation", "soutien", "programmes",
+        "solutions", "cas_usages", "echelle", "mutualisation", "soutien", "programmes",
         "contrats", "departements", "region", "documents",
     },
     "BDD_Solutions": {"nom", "type", "partenaire", "projets"},
