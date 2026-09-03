@@ -12,11 +12,9 @@ os.environ.setdefault("GRIST_API_KEY", "cle-factice-pour-tests")
 os.environ.setdefault("GRIST_DOC_ID", "doc-factice")
 os.environ.setdefault("GRIST_SERVER_URL", "https://grist.exemple.test")
 os.environ.setdefault("ENVIRONMENT", "test")
-# Hermétisme : neutraliser tout SMTP/OIDC du .env local (os.environ > .env)
-# pour que les tests ne dépendent pas de la configuration réelle du poste.
-for _var in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM",
-             "ADMIN_NOTIFY_EMAILS", "OIDC_ISSUER", "OIDC_CLIENT_ID",
-             "OIDC_CLIENT_SECRET"):
+# Hermétisme : neutraliser l'OIDC du .env local (os.environ > .env) pour que
+# les tests ne dépendent pas de la configuration réelle du poste.
+for _var in ("OIDC_ISSUER", "OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET"):
     os.environ.setdefault(_var, "")
 
 import re  # noqa: E402

@@ -62,7 +62,6 @@ from app.services.admin_service import AdminService
 from app.services.auth_service import AuthService
 from app.services.collectivite_service import CollectiviteService
 from app.services.geocode_client import GeocodeClient
-from app.services.notification_service import NotificationService
 from app.services.oidc_service import OidcService
 from app.services.projet_service import ProjetService
 from app.services.restitution_service import RestitutionService
@@ -104,15 +103,9 @@ def get_reference_repository() -> ReferenceRepositoryProtocol:
 
 
 @lru_cache
-def get_notification_service() -> NotificationService:
-    return NotificationService(get_settings())
-
-
-@lru_cache
 def get_auth_service() -> AuthService:
     return AuthService(
         get_utilisateur_repository(),
-        get_notification_service(),
     )
 
 
@@ -202,7 +195,6 @@ def reset_singletons() -> None:
         get_utilisateur_repository,
         get_collectivite_repository,
         get_reference_repository,
-        get_notification_service,
         get_auth_service,
         get_admin_service,
         get_projet_repository,

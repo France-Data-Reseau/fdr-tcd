@@ -13,7 +13,6 @@ from app.repositories.types import (
     UtilisateurRecord,
 )
 from app.repositories.utilisateur_repository import UtilisateurRepositoryProtocol
-from app.services.notification_service import NotificationService
 from app.services.types import InscriptionForm
 
 logger = logging.getLogger(__name__)
@@ -23,10 +22,8 @@ class AuthService:
     def __init__(
         self,
         utilisateurs: UtilisateurRepositoryProtocol,
-        notifications: NotificationService,
     ):
         self._utilisateurs = utilisateurs
-        self._notifications = notifications
 
     def register(self, formulaire: InscriptionForm) -> None:
         """Crée une demande d'accès « En attente ». Réponse neutre.
@@ -46,13 +43,6 @@ class AuthService:
                 "collectivite": formulaire.collectivite_id,
                 "date_inscription": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
-        )
-        self._notifications.notify_new_user(
-            prenom=formulaire.prenom,
-            nom=formulaire.nom,
-            email=formulaire.email,
-            organisation=formulaire.organisation,
-            collectivite=formulaire.collectivite_nom,
         )
 
     def request_elevation(self, utilisateur: UtilisateurRecord) -> bool:
