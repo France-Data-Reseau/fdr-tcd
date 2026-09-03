@@ -84,12 +84,12 @@ async def sso_callback(request: Request):
         get_utilisateur_repository().get_by_email, email
     )
     if utilisateur is None:
-        # Identité vérifiée par l'IdP mais aucun compte applicatif : on
-        # l'oriente vers la demande d'accès (pré-remplie)
-        request.session["prefill_email"] = email
-        flash(request, "Aucun compte n'existe pour cette adresse. "
-                       "Remplissez la demande d'accès ci-dessous.", "error")
-        return RedirectResponse(url="/inscription", status_code=303)
+        # Liste fermée (cadrage 2026-08-27) : identité vérifiée par l'IdP mais
+        # aucun compte applicatif -> accès refusé. Les comptes sont créés par un
+        # administrateur (pas d'auto-inscription).
+        flash(request, "Votre compte n'est pas encore autorisé sur la "
+                       "plateforme. Contactez un administrateur FNCCR.", "error")
+        return RedirectResponse(url="/login", status_code=303)
     open_user_session(request, str(utilisateur.get("email", "")))
     if utilisateur.get("droits") == DROIT_EN_ATTENTE:
         return RedirectResponse(url="/acces-refuse", status_code=303)
