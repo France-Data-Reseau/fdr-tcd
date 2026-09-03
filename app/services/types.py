@@ -16,6 +16,7 @@ from app.repositories.types import (
     DROIT_EDITEUR,
     DROIT_EN_ATTENTE,
     DROIT_EXTENTION,
+    DROIT_LECTEUR,
     DROIT_VISITEUR,
     DROITS,
 )
@@ -185,7 +186,7 @@ class DocumentForm(BaseModel):
 DROITS_ATTRIBUABLES = (
     DROIT_ADMINISTRATEUR,
     DROIT_EDITEUR,
-    DROIT_VISITEUR,
+    DROIT_LECTEUR,
     DROIT_EN_ATTENTE,
 )
 
@@ -196,5 +197,6 @@ __all__ = [
     "DROIT_EDITEUR",
     "DROIT_EN_ATTENTE",
     "DROIT_EXTENTION",
+    "DROIT_LECTEUR",
     "DROIT_VISITEUR",
 ]

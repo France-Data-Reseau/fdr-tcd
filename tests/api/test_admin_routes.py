@@ -32,14 +32,14 @@ def test_admin_valide_un_compte_en_attente(client):
     reponse = client.post(
         "/admin/utilisateur/4",
         data={
-            "droits": "Visiteur", "collectivite": "6",
+            "droits": "Lecteur", "collectivite": "6",
             "csrf_token": extraire_csrf(page.text),
         },
     )
     assert "mis à jour" in reponse.text
     fake = client.fake_grist
     paul = next(r for r in fake.records[TABLE_UTILISATEURS] if r["id"] == 4)
-    assert paul["droits"] == "Visiteur"
+    assert paul["droits"] == "Lecteur"
     assert paul["collectivite"] == 6
 
 
@@ -64,7 +64,7 @@ def test_admin_ne_peut_pas_se_retrograder(client):
     reponse = client.post(
         "/admin/utilisateur/1",
         data={
-            "droits": "Visiteur", "collectivite": "0",
+            "droits": "Lecteur", "collectivite": "0",
             "csrf_token": extraire_csrf(page.text),
         },
     )

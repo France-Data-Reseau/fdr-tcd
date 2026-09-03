@@ -51,6 +51,7 @@ from app.repositories.types import (
     DROIT_ADMINISTRATEUR,
     DROIT_EN_ATTENTE,
     DROIT_EXTENTION,
+    DROIT_LECTEUR,
     DROIT_VISITEUR,
     UtilisateurRecord,
 )
@@ -243,7 +244,7 @@ def require_auth(request: Request) -> UtilisateurRecord:
 def require_editor(request: Request) -> UtilisateurRecord:
     """Droits d'édition exigés (Éditeur/Administrateur) — parité v1."""
     utilisateur = require_auth(request)
-    if utilisateur.get("droits") in (DROIT_VISITEUR, DROIT_EXTENTION):
+    if utilisateur.get("droits") in (DROIT_VISITEUR, DROIT_EXTENTION, DROIT_LECTEUR):
         raise AuthRedirect("/")
     return utilisateur
 

@@ -85,7 +85,7 @@
         </style>
 
         <div style="text-align:center;margin-top:1.25rem;">
-            {% if user.droits == "Visiteur" %}
+            {% if user.droits in ["Lecteur", "Visiteur"] %}
             <form action="/demande-modification" method="post" style="display:inline;margin-right:0.5rem;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <button type="submit" class="btn btn-accent btn-sm">Demande de modification</button>

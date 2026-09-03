@@ -32,21 +32,26 @@ DROIT_EDITEUR = "Editeur"
 DROIT_VISITEUR = "Visiteur"
 DROIT_EXTENTION = "Extention"
 DROIT_EN_ATTENTE = "En attente"
+DROIT_LECTEUR = "Lecteur"
 
 DROITS = (
     DROIT_ADMINISTRATEUR,
     DROIT_EDITEUR,
-    DROIT_VISITEUR,
-    DROIT_EXTENTION,
+    DROIT_LECTEUR,
+    DROIT_VISITEUR,   # legacy : conservé pour normalisation, plus attribué
+    DROIT_EXTENTION,  # legacy : état transitoire, plus attribué
     DROIT_EN_ATTENTE,
 )
 
-# Valeurs anglaises héritées du schéma : normalisées à la lecture, jamais écrites.
+# Normalisation des droits À LA LECTURE (jamais réécrite en base) : valeurs
+# anglaises héritées + « Visiteur » (legacy) → « Lecteur ». Toute valeur inconnue
+# ou vide est ramenée à « En attente » par le repository (aucun compte non assigné).
 DROITS_EN_VERS_FR = {
     "Administrator": DROIT_ADMINISTRATEUR,
     "Editor": DROIT_EDITEUR,
-    "Viewer": DROIT_VISITEUR,
+    "Viewer": DROIT_LECTEUR,
     "Pending": DROIT_EN_ATTENTE,
+    "Visiteur": DROIT_LECTEUR,
 }
 
 class UtilisateurRecord(TypedDict):

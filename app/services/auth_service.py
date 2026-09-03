@@ -9,6 +9,7 @@ from datetime import datetime
 
 from app.repositories.types import (
     DROIT_EXTENTION,
+    DROIT_LECTEUR,
     DROIT_VISITEUR,
     UtilisateurRecord,
 )
@@ -46,8 +47,12 @@ class AuthService:
         )
 
     def request_elevation(self, utilisateur: UtilisateurRecord) -> bool:
-        """Un Visiteur demande à devenir Éditeur (statut → Extention)."""
-        if utilisateur.get("droits") != DROIT_VISITEUR:
+        """Un Lecteur demande à devenir Éditeur (statut → Extention).
+
+        « Visiteur » (legacy) reste accepté : un compte encore porteur de
+        cette valeur en base peut demander l'élévation avant migration.
+        """
+        if utilisateur.get("droits") not in (DROIT_VISITEUR, DROIT_LECTEUR):
             return False
         self._utilisateurs.update(utilisateur["id"], {"droits": DROIT_EXTENTION})
         return True
