@@ -47,11 +47,8 @@ Si l'application quitte `fdr2.revorun.eu` :
 2. **DNS** : enregistrement A vers l'IP du serveur AVANT le premier
    démarrage (certificat Let's Encrypt du premier coup).
 3. **Caddyfile** : dupliquer le bloc du domaine, `caddy reload`.
-4. **Livraison** : `scripts/deploiement.ps1` fait tout (vérification, wheels
-   Linux téléchargées en local, transfert du code + wheels, **build SUR le
-   VPS hors-ligne** — son résolveur IPv6 rend PyPI inaccessible, il ne doit
-   jamais le contacter — puis contrôles v2 ET v1). Pas besoin de Docker sur
-   le poste. Détail complet : `docs_architecture/05_DEPLOIEMENT.md`.
+4. **Livraison** : le workflow GitHub Actions construit et publie l'image dans
+   GHCR.  Détail complet : `docs_architecture/05_DEPLOIEMENT.md`.
 
 ## C. Lexique des dettes techniques ASSUMÉES (ne pas « corriger »)
 

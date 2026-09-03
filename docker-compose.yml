@@ -1,11 +1,18 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/france-data-reseau/fdr-tcd:${FDR_APP_TAG:-staging}
     init: true
     restart: unless-stopped
     env_file: .env
+    environment:
+      - APP_PUBLIC_URL=${APP_PUBLIC_URL}
+      - GRIST_API_KEY=${GRIST_API_KEY}
+      - GRIST_DOC_ID=${GRIST_DOC_ID}
+      - GRIST_SERVER_URL=${GRIST_SERVER_URL}
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - SECRET_KEY=${SECRET_KEY}
     security_opt:
       - no-new-privileges:true
     cap_drop:

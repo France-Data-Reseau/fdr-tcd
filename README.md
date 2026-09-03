@@ -102,9 +102,8 @@ tests/                 # unit/ + api/ (sécurité : IDOR, CSRF, accès)
 
 ## Déploiement
 
-`powershell -File scripts/deploiement.ps1` : vérification complète, wheels
-Linux téléchargées en local, transfert code + wheels, **build hors-ligne sur
-le VPS** (qui ne contacte jamais PyPI — résolveur IPv6 cassé), service `fdr2`
-derrière Caddy sur `fdr2.revorun.eu`. Procédure détaillée et vérifications :
+Le workflow GitHub Actions publie l'image multi-architecture dans GHCR :
+`staging` pour `main`, puis les tags semver pour les versions `vX.Y.Z`.
+Procédure détaillée et vérifications :
 [`docs_architecture/05_DEPLOIEMENT.md`](docs_architecture/05_DEPLOIEMENT.md).
 La v1 (`fdr.revorun.eu`) n'est jamais touchée.

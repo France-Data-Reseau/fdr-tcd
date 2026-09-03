@@ -1,16 +1,10 @@
 # Déploiement — fdr2.revorun.eu (v1 intacte)
 
-> **MÉTHODE EN VIGUEUR (2026-06-12, premier déploiement réalisé ainsi) :
-> build SUR LE VPS, installation hors-ligne.** Docker Desktop étant absent du
-> poste de Victor, la stratégie « image construite en local + docker save/load »
-> envisagée après les revues a été remplacée par le contournement robuste de
-> `VPS_DEPLOY.md` : les dépendances sont téléchargées en local sous forme de
-> **wheels Linux** (`pip download`, cp311 manylinux — pas besoin de Docker),
-> transférées avec le code, et l'image est construite sur le VPS avec
-> `pip install --no-index --find-links=wheels/`. **Le VPS ne contacte jamais
-> PyPI** (son résolveur IPv6 est cassé). Ce qui fait foi : `Dockerfile`,
-> `requirements.txt` (exporté du lock uv, commité) et `scripts/deploiement.ps1`
-> qui automatise toute la chaîne.
+> **MÉTHODE EN VIGUEUR : image construite par GitHub Actions et publiée dans
+> GHCR.** Le workflow `.github/workflows/docker-release.yml` construit les
+> architectures `amd64` et `arm64`, publie `staging` depuis `main` et les tags
+> semver depuis les tags `vX.Y.Z`. Le VPS ne construit donc plus l'image et ne
+> contacte jamais PyPI.
 
 Conforme à `KIT_REBUILD_V2/VPS_DEPLOY.md`. Règles absolues : ne jamais toucher au service
 `fdr`, ne jamais exposer de port public supplémentaire, jamais de `docker compose down -v`.
@@ -85,18 +79,17 @@ Conforme à `KIT_REBUILD_V2/VPS_DEPLOY.md`. Règles absolues : ne jamais toucher
      Vérifier au préalable le contenu du snippet `security_headers` (répartition des
      headers, voir `03` §2-S6 : HSTS à Caddy, CSP à l'app).
 
-6. **Build hors-ligne + démarrage** :
+6. **Pull de l'image + démarrage** :
    ```bash
-   ssh.exe vps "cd ~/stack && docker compose build fdr2 && docker compose up -d fdr2"
-   ssh.exe vps "cd ~/stack && docker compose exec caddy caddy reload --config /etc/caddy/Caddyfile"
+  ssh.exe vps "cd ~/stack/app_fdr_v2 && docker compose -f docker-compose.yml -f docker-compose.prod.yml pull app && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d app"
    ```
-   (reload, pas restart — N3. Le `GIT_SHA` est écrit dans le `.env` du VPS à
-   chaque déploiement par `scripts/deploiement.ps1` — c'est lui que `/health`
-   expose.)
+  Le tag est `staging` par défaut (`FDR_APP_TAG` permet de choisir une version
+  semver). Le `GIT_SHA` est intégré à l'image par le workflow et c'est lui que
+  `/health` expose.
 
 7. **Vérifications post-déploiement** :
    ```bash
-   ssh.exe vps "cd ~/stack && docker compose ps fdr2 && docker compose logs fdr2 --tail 20"
+  ssh.exe vps "cd ~/stack/app_fdr_v2 && docker compose -f docker-compose.yml -f docker-compose.prod.yml ps app && docker compose -f docker-compose.yml -f docker-compose.prod.yml logs app --tail 20"
    curl -s https://fdr2.revorun.eu/health   # 200 + SHA attendu → LA BONNE version répond (R1)
    curl -I https://fdr.revorun.eu           # la v1 doit TOUJOURS répondre
    ```
