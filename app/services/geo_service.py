@@ -1,9 +1,10 @@
 """Résolution géographique des collectivités → (lat, lng).
 
-Port FIDÈLE du ``geo_resolver`` v1 (mêmes heuristiques, mêmes overrides) avec
-une différence structurelle : la correspondance nom de département → numéro
-est construite depuis ``BDD_Departements`` (injectée), plus aucune liste de
-départements codée en dur.
+Héritier du ``geo_resolver`` v1 (mêmes heuristiques de nettoyage de nom), mais
+toutes les données de référence sont injectées depuis Grist : la correspondance
+nom de département → numéro et les coordonnées (préfectures, chefs-lieux) sont
+lues depuis ``BDD_Departements`` et ``BDD_Regions``. Les coordonnées d'une
+collectivité vivent sur SA fiche (``BDD_Collectivites``) — aucun override en dur.
 
 Stratégie (héritée de la v1, éprouvée) :
 1. déterminer le département/région ATTENDU à partir du nom et des champs ;
@@ -17,9 +18,18 @@ import re
 import unicodedata
 from collections.abc import Awaitable, Callable
 
-from app.repositories.types import DepartementRecord
+from app.repositories.types import DepartementRecord, RegionRecord
 
 GeocodeFn = Callable[..., Awaitable[tuple[float, float] | None]]
+
+# ============================================================================
+# DONNÉES DE RÉFÉRENCE — MAINTENUES DANS GRIST (``BDD_Departements`` avec
+# latitude/longitude, et ``BDD_Regions``). Les constantes ci-dessous ne servent
+# plus que de REPLI de sécurité si ces sources Grist sont absentes/vides. En
+# fonctionnement normal, ``GeoResolver`` lit Grist. Pour corriger le placement
+# d'une collectivité, éditer SA fiche (``BDD_Collectivites`` : latitude/longitude
+# ou le champ département) — pas ce fichier.
+# ============================================================================
 
 # --- Coordonnées des préfectures (1 point fiable par département) ---
 DEP_PREF_COORDS: dict[str, tuple[float, float]] = {
@@ -81,42 +91,6 @@ _REGION_COORDS_RAW: dict[str, tuple[float, float]] = {
     "Mayotte": (-12.7977, 45.1976),
 }
 
-# Acronymes / syndicats sans indice géographique exploitable → département
-ACRONYM_DEP: dict[str, str] = {
-    "sddea": "10",      # Aube
-    "sdef": "29",       # Finistère
-    "serpn": "27",      # Eure
-    "siea": "01",       # Ain
-    "sieda": "12",      # Aveyron
-    "sieds": "79",      # Deux-Sèvres
-    "sieeen": "58",     # Nièvre
-    "sieml": "49",      # Maine-et-Loire
-    "sipperec": "75",   # Paris / petite couronne
-    "syaden": "11",     # Aude
-    "syane": "74",      # Haute-Savoie
-    "sydesl": "71",     # Saône-et-Loire
-    "sydev": "85",      # Vendée
-    "useda": "02",      # Aisne
-    "gip arnia": "25",  # Besançon (Doubs)
-}
-
-# Synonymes territoriaux (territoire historique) → département
-SYNONYM_DEP: dict[str, str] = {
-    "perigord": "24",       # Dordogne
-    "berry": "18",          # Cher (Berry Numérique)
-    "val de loire": "37",   # Indre-et-Loire (Val-de-Loire Numérique)
-}
-
-# Overrides manuels (nom normalisé → coordonnées) pour les cas non résolvables.
-# Valeur None = ne pas placer plutôt que placer au mauvais endroit.
-MANUAL_COORDS: dict[str, tuple[float, float] | None] = {
-    "ca pays ajaccien": (41.9337, 8.7153),               # Ajaccio (Corse-du-Sud)
-    "ca caux seine agglo": (49.5193, 0.5388),            # Lillebonne (Seine-Maritime)
-    "cc du pays haut val d alzette": (49.4646, 5.9889),  # Audun-le-Tiche (Moselle)
-    "ept grand paris seine ouest": (48.8352, 2.2399),    # Boulogne-Billancourt
-    "gip adine": None,                                   # localisation incertaine
-}
-
 # Tokens administratifs retirés en tête de nom
 _ADMIN_LEAD = {
     "ca", "cc", "cu", "cd", "cr", "ct", "ept", "gip", "sivu", "sivom",
@@ -164,21 +138,53 @@ _REGION_KEYS = sorted(REGION_COORDS.keys(), key=len, reverse=True)
 
 
 class GeoResolver:
-    """Résolveur initialisé avec les départements de ``BDD_Departements``."""
+    """Résolveur géographique.
 
-    def __init__(self, departements: list[DepartementRecord]):
-        # nom de département normalisé → numéro (source : Grist, plus de
-        # liste codée en dur comme la v1)
+    Toutes les données de référence sont **injectées depuis Grist** (maintenables
+    par un admin sans redéploiement) :
+
+    - ``departements`` (``BDD_Departements``) : nom → numéro, et
+      ``latitude``/``longitude`` → coordonnées des préfectures (repli) ;
+    - ``regions`` (``BDD_Regions``) : chefs-lieux de région (repli).
+
+    Si une source est absente ou vide, on retombe sur les constantes en dur
+    définies plus haut (mêmes valeurs) — l'app ne casse jamais. Les coordonnées
+    d'une collectivité sont lues en priorité sur SA fiche (hors de cette classe,
+    via ``stored_coords``) ; ce résolveur n'intervient qu'à défaut.
+    """
+
+    def __init__(
+        self,
+        departements: list[DepartementRecord],
+        regions: list[RegionRecord] | None = None,
+    ):
+        # nom de département normalisé → numéro ; numéro → coord. préfecture
         self._dep_name_to_num: dict[str, str] = {}
+        self._dep_pref_coords: dict[str, tuple[float, float]] = {}
         for d in departements:
             nom = str(d.get("nom") or "")
             num = str(d.get("num_dep") or "").strip()
             if nom and num:
                 self._dep_name_to_num[_norm(nom)] = num
+            lat, lng = d.get("latitude"), d.get("longitude")
+            if num and lat is not None and lng is not None:
+                self._dep_pref_coords[num] = (float(lat), float(lng))
+        if not self._dep_pref_coords:  # repli : coordonnées en dur
+            self._dep_pref_coords = DEP_PREF_COORDS
         # « Haute-Garonne » doit matcher avant « Garonne »
         self._dep_name_keys = sorted(
             self._dep_name_to_num.keys(), key=len, reverse=True
         )
+
+        # Chefs-lieux de région (repli : _REGION_COORDS_RAW via REGION_COORDS)
+        region_coords: dict[str, tuple[float, float]] = {}
+        for r in regions or []:
+            nom = str(r.get("nom") or "")
+            lat, lng = r.get("latitude"), r.get("longitude")
+            if nom and lat is not None and lng is not None:
+                region_coords[_norm(nom)] = (float(lat), float(lng))
+        self._region_coords = region_coords or REGION_COORDS
+        self._region_keys = sorted(self._region_coords.keys(), key=len, reverse=True)
 
     # --- Département attendu ---
 
@@ -194,36 +200,27 @@ class GeoResolver:
                 code = m.group(1)
                 if code.isdigit() and len(code) < 2:
                     code = code.zfill(2)
-                if code in DEP_PREF_COORDS:
+                if code in self._dep_pref_coords:
                     return code
 
         norm = _norm(nom)
 
-        # 2. Acronyme connu
-        if norm in ACRONYM_DEP:
-            return ACRONYM_DEP[norm]
-
-        # 3. Synonyme territorial explicite
-        for key, code in SYNONYM_DEP.items():
-            if re.search(r"\b" + re.escape(key) + r"\b", norm):
-                return code
-
-        # 4. Numéro de département présent dans le nom (« SDE 22 »…)
+        # 2. Numéro de département présent dans le nom (« SDE 22 »…)
         for tok in re.findall(r"\b(2A|2B|\d{2,3})\b", norm.upper()):
-            if tok in DEP_PREF_COORDS:
+            if tok in self._dep_pref_coords:
                 return tok
 
-        # 5. « Cœur territorial » = un nom de département (« CD Hérault »…)
+        # 3. « Cœur territorial » = un nom de département (« CD Hérault »…)
         core = " ".join(w for w in norm.split() if w not in _CORE_NOISE).strip()
         if core in self._dep_name_to_num:
             return self._dep_name_to_num[core]
 
-        # 6. Nom de département en suffixe précédé d'un connecteur
+        # 4. Nom de département en suffixe précédé d'un connecteur
         for key in self._dep_name_keys:
             if re.search(r"\b(en|de|du|d)\s+" + re.escape(key) + r"$", norm):
                 return self._dep_name_to_num[key]
 
-        # 7. Champ dep texte
+        # 5. Champ dep texte
         nd_txt = _norm(dep)
         if nd_txt in self._dep_name_to_num:
             return self._dep_name_to_num[nd_txt]
@@ -236,18 +233,17 @@ class GeoResolver:
     def _is_region_entity(norm: str) -> bool:
         return bool(re.match(r"^(cr|region|conseil regional)\b", norm))
 
-    @staticmethod
-    def region_coords(nom: str, reg: str = "") -> tuple[float, float] | None:
+    def region_coords(self, nom: str, reg: str = "") -> tuple[float, float] | None:
         """Coordonnées du chef-lieu de région si une région est identifiée."""
         for src in (reg, nom):
             norm = _norm(src)
             if not norm:
                 continue
-            if norm in REGION_COORDS:
-                return REGION_COORDS[norm]
-            for key in _REGION_KEYS:
+            if norm in self._region_coords:
+                return self._region_coords[norm]
+            for key in self._region_keys:
                 if re.search(r"\b" + re.escape(key) + r"\b", norm):
-                    return REGION_COORDS[key]
+                    return self._region_coords[key]
         return None
 
     def city_query(self, nom: str) -> str | None:
@@ -302,10 +298,6 @@ class GeoResolver:
         reg = str(fields.get("reg") or "").strip()
         norm = _norm(nom)
 
-        # 0. Override manuel explicite (peut forcer None)
-        if norm in MANUAL_COORDS:
-            return MANUAL_COORDS[norm]
-
         exp = self.expected_dep(nom, num_dep, dep, reg)
 
         # 1. Adresse postale (la plus précise) — validée si département connu
@@ -328,8 +320,8 @@ class GeoResolver:
                 return coords
 
         # 4. Repli : préfecture du département attendu
-        if exp and exp in DEP_PREF_COORDS:
-            return DEP_PREF_COORDS[exp]
+        if exp and exp in self._dep_pref_coords:
+            return self._dep_pref_coords[exp]
 
         # 5. Repli : chef-lieu de région
         return self.region_coords(nom, reg)

@@ -21,6 +21,7 @@ TABLE_DOCUMENTS = "BDD_Documents"
 TABLE_PARTENAIRES = "BDD_Partenaires"
 TABLE_PROGRAMMES = "BDD_Programmes"
 TABLE_PROJETS = "BDD_Projets"
+TABLE_REGIONS = "BDD_Regions"
 TABLE_SOLUTIONS = "BDD_Solutions"
 TABLE_UTILISATEURS = "BDD_Utilisateurs"
 
@@ -147,7 +148,16 @@ class DepartementRecord(TypedDict):
     nom: str
     num_dep: str
     region: str
+    latitude: NotRequired[float]   # coord. préfecture (repli géo) — éditable en Grist
+    longitude: NotRequired[float]
     projets: NotRequired[list]  # formule (lookup) — jamais écrite
+
+
+class RegionRecord(TypedDict):
+    id: int
+    nom: str
+    latitude: NotRequired[float]
+    longitude: NotRequired[float]
 
 
 class DocumentRecord(TypedDict):
