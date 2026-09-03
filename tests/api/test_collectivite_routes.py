@@ -6,7 +6,7 @@ from tests.conftest import connecter, extraire_csrf
 
 def test_completion_admin_voit_le_selecteur(client):
     connecter(client, "admin@exemple.fr")
-    page = client.get("/completion")
+    page = client.get("/contribution")
     assert page.status_code == 200
     assert "Ville Exemple" in page.text
     assert "Agglo Test" in page.text
@@ -14,14 +14,14 @@ def test_completion_admin_voit_le_selecteur(client):
 
 def test_completion_editeur_redirige_vers_sa_collectivite(client):
     connecter(client, "editeur@exemple.fr")
-    reponse = client.get("/completion", follow_redirects=False)
+    reponse = client.get("/contribution", follow_redirects=False)
     assert reponse.status_code == 303
     assert reponse.headers["location"] == "/collectivite/5"
 
 
 def test_completion_visiteur_renvoye_au_menu(client):
     connecter(client, "visiteur@exemple.fr")
-    reponse = client.get("/completion", follow_redirects=False)
+    reponse = client.get("/contribution", follow_redirects=False)
     assert reponse.status_code == 303
     assert reponse.headers["location"] == "/"
 

@@ -9,7 +9,7 @@
 
         <div class="menu-buttons-row">
             {% if user.droits == "Administrateur" or (user.droits == "Editeur" and user.collectivite_id) %}
-            <a href="/completion" class="menu-btn">
+            <a href="/contribution" class="menu-btn">
                 <div class="menu-btn-icon">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -43,7 +43,7 @@
             </div>
             {% endif %}
 
-            <a href="/restitution" class="menu-btn menu-btn-accent">
+            <a href="/cartographie" class="menu-btn menu-btn-accent">
                 <div class="menu-btn-icon menu-btn-icon-accent">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
