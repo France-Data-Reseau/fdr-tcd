@@ -12,11 +12,9 @@ os.environ.setdefault("GRIST_API_KEY", "cle-factice-pour-tests")
 os.environ.setdefault("GRIST_DOC_ID", "doc-factice")
 os.environ.setdefault("GRIST_SERVER_URL", "https://grist.exemple.test")
 os.environ.setdefault("ENVIRONMENT", "test")
-# Hermétisme : neutraliser tout SMTP/OIDC du .env local (os.environ > .env)
-# pour que les tests ne dépendent pas de la configuration réelle du poste.
-for _var in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM",
-             "ADMIN_NOTIFY_EMAILS", "OIDC_ISSUER", "OIDC_CLIENT_ID",
-             "OIDC_CLIENT_SECRET"):
+# Hermétisme : neutraliser l'OIDC du .env local (os.environ > .env) pour que
+# les tests ne dépendent pas de la configuration réelle du poste.
+for _var in ("OIDC_ISSUER", "OIDC_CLIENT_ID", "OIDC_CLIENT_SECRET"):
     os.environ.setdefault(_var, "")
 
 import re  # noqa: E402
@@ -184,12 +182,6 @@ DOCUMENTS_TEST = [
      "projet": 10},
 ]
 
-CONTACTS_TEST = [
-    {"id": 60, "prenom": "Jean", "nom": "Dupont", "elu": False,
-     "fonction": "DSI", "email": "jean@ville.fr", "telephone": "", "mobile": "",
-     "collectivite": 5, "projets": "Projet Lampadaires"},
-]
-
 CONNECTIVITES_TEST = [
     {"id": 70, "nom": "LoRaWAN", "projets": ["L", 10]},
     {"id": 71, "nom": "5G", "projets": []},
@@ -226,7 +218,6 @@ def client(fake_grist, monkeypatch):
     fake_grist.records["BDD_Partenaires"] = deepcopy(PARTENAIRES_TEST)
     fake_grist.records["BDD_Programmes"] = deepcopy(PROGRAMMES_TEST)
     fake_grist.records["BDD_Documents"] = deepcopy(DOCUMENTS_TEST)
-    fake_grist.records["BDD_Contacts"] = deepcopy(CONTACTS_TEST)
     fake_grist.records["BDD_Connectivites"] = deepcopy(CONNECTIVITES_TEST)
     fake_grist.records["BDD_Contrats"] = deepcopy(CONTRATS_TEST)
     fake_grist.records["BDD_Solutions"] = deepcopy(SOLUTIONS_TEST)

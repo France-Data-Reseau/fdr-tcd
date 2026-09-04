@@ -9,11 +9,11 @@ from datetime import datetime
 
 from app.repositories.types import (
     DROIT_EXTENTION,
+    DROIT_LECTEUR,
     DROIT_VISITEUR,
     UtilisateurRecord,
 )
 from app.repositories.utilisateur_repository import UtilisateurRepositoryProtocol
-from app.services.notification_service import NotificationService
 from app.services.types import InscriptionForm
 
 logger = logging.getLogger(__name__)
@@ -23,10 +23,8 @@ class AuthService:
     def __init__(
         self,
         utilisateurs: UtilisateurRepositoryProtocol,
-        notifications: NotificationService,
     ):
         self._utilisateurs = utilisateurs
-        self._notifications = notifications
 
     def register(self, formulaire: InscriptionForm) -> None:
         """Crée une demande d'accès « En attente ». Réponse neutre.
@@ -47,17 +45,14 @@ class AuthService:
                 "date_inscription": datetime.now().strftime("%Y-%m-%d %H:%M"),
             }
         )
-        self._notifications.notify_new_user(
-            prenom=formulaire.prenom,
-            nom=formulaire.nom,
-            email=formulaire.email,
-            organisation=formulaire.organisation,
-            collectivite=formulaire.collectivite_nom,
-        )
 
     def request_elevation(self, utilisateur: UtilisateurRecord) -> bool:
-        """Un Visiteur demande à devenir Éditeur (statut → Extention)."""
-        if utilisateur.get("droits") != DROIT_VISITEUR:
+        """Un Lecteur demande à devenir Éditeur (statut → Extention).
+
+        « Visiteur » (legacy) reste accepté : un compte encore porteur de
+        cette valeur en base peut demander l'élévation avant migration.
+        """
+        if utilisateur.get("droits") not in (DROIT_VISITEUR, DROIT_LECTEUR):
             return False
         self._utilisateurs.update(utilisateur["id"], {"droits": DROIT_EXTENTION})
         return True

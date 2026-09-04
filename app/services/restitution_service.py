@@ -226,7 +226,12 @@ class RestitutionService:
         a_geocoder = [c for c in collectivites if stored_coords(dict(c)) is None]
         if not a_geocoder:
             return {}
-        resolver = GeoResolver(self._references.list_departements())
+        # Données de référence géo injectées depuis Grist (lectures cachées) :
+        # départements (+ coord. préfecture de repli) et chefs-lieux de région.
+        resolver = GeoResolver(
+            self._references.list_departements(),
+            regions=self._references.list_regions(),
+        )
         semaphore = asyncio.Semaphore(_GEOCODE_PARALLELISME)
         results: dict[int, tuple[float, float] | None] = {}
 

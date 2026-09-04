@@ -16,7 +16,6 @@ from app.core.templating import render
 from app.dependencies import (
     get_collectivite_repository,
     get_collectivite_service,
-    get_notification_service,
     require_collectivite_ownership,
     require_editor,
 )
@@ -72,11 +71,6 @@ def collectivite_creer(
     # Création par un Éditeur : les admins valident le rattachement via la
     # console (l'Éditeur n'a pas accès à la fiche tant qu'il n'y est pas
     # rattaché — anti-IDOR inchangé).
-    get_notification_service().notify_new_collectivite(
-        nom=formulaire.nom,
-        createur=f"{utilisateur.get('prenom', '')} {utilisateur.get('nom', '')}".strip(),
-        email=str(utilisateur.get("email", "")),
-    )
     flash(
         request,
         "Collectivité créée ! Un administrateur va valider son rattachement "

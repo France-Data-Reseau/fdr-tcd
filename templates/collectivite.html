@@ -2,7 +2,7 @@
 {% block title %}FNCCR — {% if mode == 'creation' %}Nouvelle collectivité{% else %}{{ record.nom }}{% endif %}{% endblock %}
 
 {% block content %}
-<a href="{% if user and user.droits == 'Administrateur' %}/completion{% else %}/{% endif %}" class="btn-back">
+<a href="{% if user and user.droits == 'Administrateur' %}/contribution{% else %}/{% endif %}" class="btn-back">
     <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
     {% if user and user.droits == 'Administrateur' %}Retour à la liste{% else %}Retour à l'accueil{% endif %}
 </a>

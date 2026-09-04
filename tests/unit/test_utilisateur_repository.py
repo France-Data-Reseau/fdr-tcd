@@ -13,6 +13,14 @@ def repo(fake_grist, cache):
          "nom": "W", "prenom": "Victor", "organisation": "", "collectivite": 0},
         {"id": 2, "email": "editor@exemple.fr", "droits": "Editor",
          "nom": "E", "prenom": "Ed", "organisation": "", "collectivite": 5},
+        {"id": 3, "email": "viewer@exemple.fr", "droits": "Viewer",
+         "nom": "V", "prenom": "Vi", "organisation": "", "collectivite": 0},
+        {"id": 4, "email": "visiteur@exemple.fr", "droits": "Visiteur",
+         "nom": "L", "prenom": "Léa", "organisation": "", "collectivite": 0},
+        {"id": 5, "email": "vide@exemple.fr", "droits": "",
+         "nom": "X", "prenom": "Xa", "organisation": "", "collectivite": 0},
+        {"id": 6, "email": "bizarre@exemple.fr", "droits": "SuperAdmin",
+         "nom": "Z", "prenom": "Zo", "organisation": "", "collectivite": 0},
     ]
     return GristUtilisateurRepository(fake_grist, cache)
 
@@ -28,9 +36,20 @@ def test_get_by_email_inconnu(repo):
     assert repo.get_by_email("") is None
 
 
-def test_droits_anglais_normalises_a_la_lecture(repo):
-    utilisateur = repo.get_by_email("editor@exemple.fr")
-    assert utilisateur["droits"] == "Editeur"
+@pytest.mark.parametrize(
+    "email, attendu",
+    [
+        ("editor@exemple.fr", "Editeur"),      # anglais hérité → français
+        ("viewer@exemple.fr", "Lecteur"),      # anglais hérité → Lecteur
+        ("visiteur@exemple.fr", "Lecteur"),    # « Visiteur » legacy → Lecteur
+        ("vide@exemple.fr", "En attente"),     # aucun compte non assigné
+        ("bizarre@exemple.fr", "En attente"),  # valeur inconnue → repli
+    ],
+)
+def test_droits_normalises_a_la_lecture(repo, email, attendu):
+    utilisateur = repo.get_by_email(email)
+    assert utilisateur is not None
+    assert utilisateur["droits"] == attendu
 
 
 def test_create_pending_force_en_attente(repo, fake_grist):

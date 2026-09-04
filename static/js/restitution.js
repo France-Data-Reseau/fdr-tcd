@@ -90,7 +90,7 @@
     /* ---------- Chargement ---------- */
     async function loadData() {
         try {
-            var resp = await fetch('/api/restitution/donnees');
+            var resp = await fetch('/api/cartographie/donnees');
             allData = await resp.json();
             document.getElementById('loading-overlay').style.display = 'none';
             document.getElementById('main-content').style.display = '';

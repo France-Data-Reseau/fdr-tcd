@@ -16,6 +16,7 @@ from app.repositories.types import (
     DROIT_EDITEUR,
     DROIT_EN_ATTENTE,
     DROIT_EXTENTION,
+    DROIT_LECTEUR,
     DROIT_VISITEUR,
     DROITS,
 )
@@ -180,41 +181,12 @@ class DocumentForm(BaseModel):
         return _url_http_ou_vide(valeur)
 
 
-class ContactForm(BaseModel):
-    prenom: str = Field(min_length=1, max_length=100)
-    nom: str = Field(min_length=1, max_length=100)
-    elu: bool = False
-    fonction: str = Field(default="", max_length=200)
-    email: str = Field(default="", max_length=200)
-    telephone: str = Field(default="", max_length=30)
-    mobile: str = Field(default="", max_length=30)
-
-    @field_validator("prenom", "nom", "fonction", "telephone", "mobile",
-                     mode="before")
-    @classmethod
-    def _nettoyer(cls, valeur: object) -> object:
-        return valeur.strip() if isinstance(valeur, str) else valeur
-
-    @field_validator("email", mode="before")
-    @classmethod
-    def _email_ou_vide(cls, valeur: object) -> object:
-        if isinstance(valeur, str):
-            valeur = valeur.strip()
-            if not valeur:
-                return ""
-            # Validation structurelle sans imposer EmailStr sur le champ
-            # (le champ est optionnel)
-            from pydantic import TypeAdapter
-
-            TypeAdapter(EmailStr).validate_python(valeur)
-        return valeur
-
 # Droits attribuables depuis la console administrateur (parité v1 :
 # « Extention » est un état transitoire demandé par l'utilisateur, pas attribué)
 DROITS_ATTRIBUABLES = (
     DROIT_ADMINISTRATEUR,
     DROIT_EDITEUR,
-    DROIT_VISITEUR,
+    DROIT_LECTEUR,
     DROIT_EN_ATTENTE,
 )
 
@@ -225,5 +197,6 @@ __all__ = [
     "DROIT_EDITEUR",
     "DROIT_EN_ATTENTE",
     "DROIT_EXTENTION",
+    "DROIT_LECTEUR",
     "DROIT_VISITEUR",
 ]

@@ -14,7 +14,6 @@ import logging
 from app.repositories.base import extract_values, to_reflist
 from app.repositories.cas_usage_repository import CasUsageRepositoryProtocol
 from app.repositories.collectivite_repository import CollectiviteRepositoryProtocol
-from app.repositories.contact_repository import ContactRepositoryProtocol
 from app.repositories.document_repository import DocumentRepositoryProtocol
 from app.repositories.partenaire_repository import PartenaireRepositoryProtocol
 from app.repositories.programme_repository import ProgrammeRepositoryProtocol
@@ -23,7 +22,6 @@ from app.repositories.reference_repository import ReferenceRepositoryProtocol
 from app.repositories.types import TABLE_PROJETS, ProjetRecord
 from app.services.types import (
     CasUsageCreationForm,
-    ContactForm,
     DocumentForm,
     PartenaireForm,
     ProgrammeForm,
@@ -43,7 +41,6 @@ class ProjetService:
         partenaires: PartenaireRepositoryProtocol,
         programmes: ProgrammeRepositoryProtocol,
         documents: DocumentRepositoryProtocol,
-        contacts: ContactRepositoryProtocol,
     ):
         self._projets = projets
         self._collectivites = collectivites
@@ -52,7 +49,6 @@ class ProjetService:
         self._partenaires = partenaires
         self._programmes = programmes
         self._documents = documents
-        self._contacts = contacts
 
     # --- Choix des formulaires ---
 
@@ -85,9 +81,6 @@ class ProjetService:
             "partenaires": self._partenaires.for_projet(projet_id),
             "programmes": self._programmes.for_projet(projet_id),
             "documents": self._documents.for_projet(projet_id),
-            "contacts": self._contacts.for_projet_nom(
-                str(projet.get("nom") or "")
-            ),
         }
 
     # --- Création / édition du projet ---
@@ -116,23 +109,7 @@ class ProjetService:
         return new_id
 
     def update(self, record_id: int, formulaire: ProjetForm) -> None:
-        # Les contacts sont liés au projet par son NOM (champ Text, dette v1) :
-        # si le nom change, on re-pointe leurs liaisons — sinon le renommage
-        # les orphelinerait silencieusement (revue du 2026-06-13). La dette
-        # résiduelle (renommage direct dans l'interface Grist) reste documentée.
-        ancien = self._projets.get(record_id)
-        ancien_nom = str(ancien.get("nom") or "") if ancien else ""
         self._projets.update(record_id, self._fields(formulaire))
-        if ancien_nom and ancien_nom != formulaire.nom:
-            contacts = self._contacts.for_projet_nom(ancien_nom)
-            if contacts:
-                self._contacts.update_many(
-                    [{"id": c["id"], "projets": formulaire.nom} for c in contacts]
-                )
-                logger.info(
-                    "Projet %s renommé : %d contact(s) re-lié(s) au nouveau nom",
-                    record_id, len(contacts),
-                )
 
     @staticmethod
     def _fields(formulaire: ProjetForm) -> dict:
@@ -245,25 +222,3 @@ class ProjetService:
                 "projet": projet_id,
             }
         )
-
-    # --- Contacts ---
-
-    def create_contact(
-        self, projet_id: int, collectivite_id: int, formulaire: ContactForm
-    ) -> int:
-        fields: dict = {
-            "prenom": formulaire.prenom,
-            "nom": formulaire.nom,
-            "elu": formulaire.elu,
-            "fonction": formulaire.fonction,
-            "email": formulaire.email,
-            "telephone": formulaire.telephone,
-            "mobile": formulaire.mobile,
-        }
-        if collectivite_id:
-            fields["collectivite"] = collectivite_id  # Ref simple
-        # projets = NOM du projet (champ Text — dette v1 assumée)
-        projet = self._projets.get(projet_id)
-        if projet is not None and projet.get("nom"):
-            fields["projets"] = projet["nom"]
-        return self._contacts.create(fields)

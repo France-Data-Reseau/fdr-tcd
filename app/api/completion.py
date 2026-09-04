@@ -15,7 +15,7 @@ from app.repositories.types import DROIT_EDITEUR, UtilisateurRecord
 router = APIRouter()
 
 
-@router.get("/completion")
+@router.get("/contribution")
 def completion(
     request: Request, utilisateur: UtilisateurRecord = Depends(require_editor)
 ):

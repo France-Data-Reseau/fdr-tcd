@@ -31,11 +31,6 @@ def test_num_dep_explicite(resolver):
     assert resolver.expected_dep("Peu importe", num_dep="2A") == "2A"
 
 
-def test_acronyme_connu(resolver):
-    assert resolver.expected_dep("SIPPEREC") == "75"
-    assert resolver.expected_dep("SyDEV") == "85"
-
-
 def test_numero_dans_le_nom(resolver):
     assert resolver.expected_dep("SDE 22") == "22"
 
@@ -47,10 +42,6 @@ def test_coeur_territorial_nom_de_departement(resolver):
 
 def test_suffixe_en_departement(resolver):
     assert resolver.expected_dep("Saint-Quentin-en-Yvelines") == "78"
-
-
-def test_synonyme_territorial(resolver):
-    assert resolver.expected_dep("Berry Numérique") == "18"
 
 
 def test_inconnu(resolver):
@@ -89,12 +80,15 @@ async def test_resolve_entite_regionale(resolver):
     assert coords == (48.859, 2.347)  # Paris
 
 
-async def test_resolve_override_manuel(resolver):
+async def test_resolve_nom_irresolvable(resolver):
+    # Un nom sans ville, sans numéro, sans département connu et non géocodable
+    # ne place rien (plutôt que de tomber au mauvais endroit).
     coords = await resolver.resolve(
-        {"nom": "GIP ADINE", "adresse": "", "num_dep": "", "dep": "", "reg": ""},
+        {"nom": "Organisme Introuvable", "adresse": "", "num_dep": "", "dep": "",
+         "reg": ""},
         _geocode_aucun,
     )
-    assert coords is None  # volontairement non placé
+    assert coords is None
 
 
 async def test_resolve_dep_par_nom_injecte(resolver):

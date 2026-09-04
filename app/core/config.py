@@ -1,7 +1,6 @@
 """Configuration de l'application — tout vient du .env, zéro valeur en dur.
 
-En production, l'application REFUSE de démarrer sans SECRET_KEY explicite ni
-SMTP complet pour l'envoi des notifications administrateur.
+En production, l'application REFUSE de démarrer sans SECRET_KEY explicite.
 """
 
 import logging
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     # Application
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "development" # "production", "test" ou "development"
     SECRET_KEY: str = ""
     APP_PUBLIC_URL: str = "http://localhost:8000"
     GIT_SHA: str = "dev"
@@ -34,19 +33,14 @@ class Settings(BaseSettings):
     # Sessions
     SESSION_MAX_AGE_SECONDS: int = 3600
 
-    # SMTP (notifications administrateur)
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    SMTP_FROM: str = ""
-    ADMIN_NOTIFY_EMAILS: str = ""
-
     # SSO OIDC (IdP de France Data Réseau — celui derrière l'instance Grist).
     # OIDC_CLIENT_SECRET est optionnel pour un client public avec PKCE.
     OIDC_ISSUER: str = ""
     OIDC_CLIENT_ID: str = ""
     OIDC_CLIENT_SECRET: str = ""
+    # Sécurité : refuser les identités dont l'email n'est
+    # pas marqué vérifié par l'IdP. ACTIVÉ par défaut.
+    OIDC_REQUIRE_EMAIL_VERIFIED: bool = True
 
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", extra="ignore"
@@ -59,16 +53,9 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _exiger_secrets_en_production(self) -> "Settings":
         if self.is_production:
-            manquants = []
             if not self.SECRET_KEY:
-                manquants.append("SECRET_KEY")
-            for champ in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD"):
-                if not getattr(self, champ):
-                    manquants.append(champ)
-            if manquants:
                 raise ValueError(
-                    "Refus de démarrer en production — variables manquantes : "
-                    + ", ".join(manquants)
+                    "Refus de démarrer en production — variable manquante : SECRET_KEY"
                 )
         elif not self.SECRET_KEY:
             # Hors production : clé éphémère (les sessions ne survivent pas au redémarrage)

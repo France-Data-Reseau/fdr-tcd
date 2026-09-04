@@ -14,13 +14,13 @@ from typing import Any, NotRequired, TypedDict
 TABLE_CAS_USAGES = "BDD_CasUsages"
 TABLE_COLLECTIVITES = "BDD_Collectivites"
 TABLE_CONNECTIVITES = "BDD_Connectivites"
-TABLE_CONTACTS = "BDD_Contacts"
 TABLE_CONTRATS = "BDD_Contrats"
 TABLE_DEPARTEMENTS = "BDD_Departements"
 TABLE_DOCUMENTS = "BDD_Documents"
 TABLE_PARTENAIRES = "BDD_Partenaires"
 TABLE_PROGRAMMES = "BDD_Programmes"
 TABLE_PROJETS = "BDD_Projets"
+TABLE_REGIONS = "BDD_Regions"
 TABLE_SOLUTIONS = "BDD_Solutions"
 TABLE_UTILISATEURS = "BDD_Utilisateurs"
 
@@ -32,21 +32,26 @@ DROIT_EDITEUR = "Editeur"
 DROIT_VISITEUR = "Visiteur"
 DROIT_EXTENTION = "Extention"
 DROIT_EN_ATTENTE = "En attente"
+DROIT_LECTEUR = "Lecteur"
 
 DROITS = (
     DROIT_ADMINISTRATEUR,
     DROIT_EDITEUR,
-    DROIT_VISITEUR,
-    DROIT_EXTENTION,
+    DROIT_LECTEUR,
+    DROIT_VISITEUR,   # legacy : conservé pour normalisation, plus attribué
+    DROIT_EXTENTION,  # legacy : état transitoire, plus attribué
     DROIT_EN_ATTENTE,
 )
 
-# Valeurs anglaises héritées du schéma : normalisées à la lecture, jamais écrites.
+# Normalisation des droits À LA LECTURE (jamais réécrite en base) : valeurs
+# anglaises héritées + « Visiteur » (legacy) → « Lecteur ». Toute valeur inconnue
+# ou vide est ramenée à « En attente » par le repository (aucun compte non assigné).
 DROITS_EN_VERS_FR = {
     "Administrator": DROIT_ADMINISTRATEUR,
     "Editor": DROIT_EDITEUR,
-    "Viewer": DROIT_VISITEUR,
+    "Viewer": DROIT_LECTEUR,
     "Pending": DROIT_EN_ATTENTE,
+    "Visiteur": DROIT_LECTEUR,
 }
 
 class UtilisateurRecord(TypedDict):
@@ -89,7 +94,6 @@ class ProjetRecord(TypedDict):
     id: int
     nom: str
     collectivites_porteuses: NotRequired[list]  # RefList:BDD_Collectivites
-    contacts: NotRequired[list]  # RefList:BDD_Contacts
     description: NotRequired[str]
     connectivites: NotRequired[list]  # RefList:BDD_Connectivites
     themes: NotRequired[Any]  # formule (thèmes des cas d'usage) — jamais écrite
@@ -123,20 +127,6 @@ class ConnectiviteRecord(TypedDict):
     projets: NotRequired[list]
 
 
-class ContactRecord(TypedDict):
-    id: int
-    prenom: NotRequired[str]
-    nom: NotRequired[str]
-    nom_complet: NotRequired[str]  # formule — jamais écrite
-    elu: NotRequired[bool]
-    collectivite: NotRequired[int]  # Ref:BDD_Collectivites
-    fonction: NotRequired[str]
-    email: NotRequired[str]
-    telephone: NotRequired[str]
-    mobile: NotRequired[str]
-    projets: NotRequired[Any]  # Text en v1 (nom du projet) — dette assumée
-
-
 class ContratRecord(TypedDict):
     id: int
     nom: str
@@ -147,7 +137,16 @@ class DepartementRecord(TypedDict):
     nom: str
     num_dep: str
     region: str
+    latitude: NotRequired[float]   # coord. préfecture (repli géo) — éditable en Grist
+    longitude: NotRequired[float]
     projets: NotRequired[list]  # formule (lookup) — jamais écrite
+
+
+class RegionRecord(TypedDict):
+    id: int
+    nom: str
+    latitude: NotRequired[float]
+    longitude: NotRequired[float]
 
 
 class DocumentRecord(TypedDict):

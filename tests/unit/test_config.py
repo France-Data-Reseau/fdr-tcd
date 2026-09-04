@@ -22,18 +22,10 @@ def test_production_sans_secret_key_refusee():
         settings_sans_dotenv(ENVIRONMENT="production")
 
 
-def test_production_sans_smtp_refusee():
-    with pytest.raises(ValidationError, match="SMTP"):
-        settings_sans_dotenv(ENVIRONMENT="production", SECRET_KEY="x" * 32)
-
-
 def test_production_complete_demarre():
     settings = settings_sans_dotenv(
         ENVIRONMENT="production",
         SECRET_KEY="x" * 32,
-        SMTP_HOST="smtp.exemple.fr",
-        SMTP_USER="app",
-        SMTP_PASSWORD="mdp",
     )
     assert settings.is_production
 

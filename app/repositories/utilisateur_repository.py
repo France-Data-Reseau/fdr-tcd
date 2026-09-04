@@ -10,6 +10,7 @@ from typing import Protocol, cast
 from app.repositories.base import BaseGristRepository
 from app.repositories.types import (
     DROIT_EN_ATTENTE,
+    DROITS,
     DROITS_EN_VERS_FR,
     TABLE_UTILISATEURS,
     UtilisateurRecord,
@@ -56,10 +57,15 @@ class GristUtilisateurRepository(BaseGristRepository[UtilisateurRecord]):
 
     @staticmethod
     def _normalise(record: UtilisateurRecord) -> UtilisateurRecord:
-        """Normalise les droits anglais hérités vers le français."""
+        """Droits normalisés À LA LECTURE (jamais réécrits en base) :
+        - valeurs anglaises héritées et « Visiteur » (legacy) → français ;
+        - toute valeur inconnue ou vide → « En attente » (aucun compte non
+          assigné). L'ordre importe : le remap précède le repli par défaut.
+        """
         droits = record.get("droits", "")
-        if droits in DROITS_EN_VERS_FR:
-            record = cast(
-                UtilisateurRecord, {**record, "droits": DROITS_EN_VERS_FR[droits]}
-            )
+        normalise = DROITS_EN_VERS_FR.get(droits, droits)
+        if normalise not in DROITS:
+            normalise = DROIT_EN_ATTENTE
+        if normalise != droits:
+            record = cast(UtilisateurRecord, {**record, "droits": normalise})
         return record

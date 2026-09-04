@@ -14,10 +14,12 @@ from app.repositories.types import (
     TABLE_CONNECTIVITES,
     TABLE_CONTRATS,
     TABLE_DEPARTEMENTS,
+    TABLE_REGIONS,
     TABLE_SOLUTIONS,
     ConnectiviteRecord,
     ContratRecord,
     DepartementRecord,
+    RegionRecord,
     SolutionRecord,
 )
 
@@ -32,6 +34,8 @@ class ReferenceRepositoryProtocol(Protocol):
     def list_contrats(self) -> list[ContratRecord]: ...
 
     def list_solutions(self) -> list[SolutionRecord]: ...
+
+    def list_regions(self) -> list[RegionRecord]: ...
 
     def get_configured_choices(self, table_id: str) -> dict[str, list[str]]: ...
 
@@ -56,6 +60,7 @@ class GristReferenceRepository(ReferenceRepositoryProtocol):
         )
         self._contrats = _TableReader[ContratRecord](TABLE_CONTRATS, grist, cache)
         self._solutions = _TableReader[SolutionRecord](TABLE_SOLUTIONS, grist, cache)
+        self._regions = _TableReader[RegionRecord](TABLE_REGIONS, grist, cache)
 
     def get_configured_choices(self, table_id: str) -> dict[str, list[str]]:
         """Choix CONFIGURÉS des colonnes Choice/ChoiceList (piège Grist n°7 :
@@ -103,3 +108,10 @@ class GristReferenceRepository(ReferenceRepositoryProtocol):
 
     def list_solutions(self) -> list[SolutionRecord]:
         return self._solutions.list_all()
+
+    def list_regions(self) -> list[RegionRecord]:
+        try:
+            return self._regions.list_all()
+        except Exception as exc:
+            logger.warning("BDD_Regions indisponible : %s", type(exc).__name__)
+            return []

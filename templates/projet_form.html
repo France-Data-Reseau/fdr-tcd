@@ -180,10 +180,6 @@
             <span class="count">{{ sous_formulaires.documents|length }}</span>
             <span class="label">Documents</span>
         </a>
-        <a href="/projet/{{ record_id }}/contact/nouveau?collectivite_id={{ collectivite_id }}" class="sub-link-card">
-            <span class="count">{{ sous_formulaires.contacts|length }}</span>
-            <span class="label">Contacts</span>
-        </a>
     </div>
 </div>
 
@@ -231,19 +227,6 @@
 </div>
 {% endif %}
 
-{% if sous_formulaires.contacts %}
-<div class="card">
-    <h3>Contacts</h3>
-    <ul class="record-list">
-        {% for r in sous_formulaires.contacts %}
-        <li>
-            <span>{{ r.prenom }} {{ r.nom }}{% if r.elu %} — Élu·e{% endif %}</span>
-            <span class="record-meta">{{ r.fonction }}{% if r.email %} · {{ r.email }}{% endif %}</span>
-        </li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
 {% endif %}
 {% endblock %}
 

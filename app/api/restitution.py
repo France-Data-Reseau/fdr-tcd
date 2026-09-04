@@ -24,7 +24,7 @@ from app.repositories.types import DROIT_EN_ATTENTE, UtilisateurRecord
 router = APIRouter()
 
 
-@router.get("/restitution")
+@router.get("/cartographie")
 def restitution_page(
     request: Request, utilisateur: UtilisateurRecord = Depends(require_auth)
 ):
@@ -36,7 +36,7 @@ def restitution_page(
     )
 
 
-@router.get("/api/restitution/donnees")
+@router.get("/api/cartographie/donnees")
 @limiter.limit("30/minute")
 async def api_restitution_donnees(request: Request):
     # Route async (gather interne) : la résolution du rôle, synchrone,

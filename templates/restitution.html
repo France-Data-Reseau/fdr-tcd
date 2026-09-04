@@ -33,7 +33,7 @@
     {% if user and user.droits in ("Administrateur", "Editeur") and user.collectivite_id %}
     <a href="/collectivite/{{ user.collectivite_id }}" class="btn btn-primary btn-sm">Compléter les données</a>
     {% elif user and user.droits == "Administrateur" %}
-    <a href="/completion" class="btn btn-primary btn-sm">Compléter les données</a>
+    <a href="/contribution" class="btn btn-primary btn-sm">Compléter les données</a>
     {% endif %}
 </div>
 
